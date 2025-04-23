@@ -80,6 +80,65 @@ const router = createRouter({
         requiresAuth: true,
         requiresAdmin: true
       }
+    },
+    // 商品管理相关路由
+    {
+      path: '/product-management',
+      name: 'productManagement',
+      component: () => import('@/views/ProductManagement.vue'),
+      meta: {
+        title: '商品管理',
+        requiresAuth: true
+      }
+    },
+    {
+      path: '/favorite-management',
+      name: 'favoriteManagement',
+      component: () => import('@/views/FavoriteManagement.vue'),
+      meta: {
+        title: '我的收藏',
+        requiresAuth: true
+      }
+    },
+    {
+      path: '/product-report',
+      name: 'productReport',
+      component: () => import('@/views/ProductReportManagement.vue'),
+      meta: {
+        title: '商品举报管理',
+        requiresAuth: true,
+        requiresAdmin: true
+      }
+    },
+    {
+      path: '/trade-method',
+      name: 'tradeMethod',
+      component: () => import('@/views/TradeMethodManagement.vue'),
+      meta: {
+        title: '交易方式管理',
+        requiresAuth: true,
+        requiresAdmin: true
+      }
+    },
+    // 订单管理相关路由
+    {
+      path: '/order-management',
+      name: 'orderManagement',
+      component: () => import('@/views/OrderManagement.vue'),
+      meta: {
+        title: '订单管理',
+        requiresAuth: true
+      }
+    },
+    {
+      path: '/create-order/:productId',
+      name: 'createOrder',
+      component: () => import('@/views/CreateOrder.vue'),
+      meta: {
+        title: '创建订单',
+        requiresAuth: true
+      },
+      props: true
     }
   ]
 })

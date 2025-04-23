@@ -44,6 +44,34 @@ const handleLogout = () => {
           <template #title>首页</template>
         </el-menu-item>
         
+        <el-sub-menu index="/products">
+          <template #title>
+            <el-icon><Goods /></el-icon>
+            <span>商品管理</span>
+          </template>
+          <el-menu-item index="/product-management">
+            <el-icon><List /></el-icon>
+            <span>商品列表</span>
+          </el-menu-item>
+          <el-menu-item index="/favorite-management">
+            <el-icon><Star /></el-icon>
+            <span>我的收藏</span>
+          </el-menu-item>
+          <el-menu-item index="/product-report" v-if="userStore.isAdmin">
+            <el-icon><Warning /></el-icon>
+            <span>举报管理</span>
+          </el-menu-item>
+          <el-menu-item index="/trade-method" v-if="userStore.isAdmin">
+            <el-icon><SwitchButton /></el-icon>
+            <span>交易方式</span>
+          </el-menu-item>
+        </el-sub-menu>
+        
+        <el-menu-item index="/order-management">
+          <el-icon><ShoppingCart /></el-icon>
+          <template #title>订单管理</template>
+        </el-menu-item>
+        
         <el-menu-item index="/profile">
           <el-icon><User /></el-icon>
           <template #title>个人信息</template>
