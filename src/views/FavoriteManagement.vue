@@ -8,7 +8,7 @@ interface FavoriteProduct {
   favoriteId: number
   productId: number
   productTitle: string
-  productPrice: number
+  productPrice: number | string
   createdTime: string
 }
 
@@ -84,7 +84,7 @@ onMounted(() => {
         <el-table-column prop="productTitle" label="商品名称" min-width="150" show-overflow-tooltip></el-table-column>
         <el-table-column prop="productPrice" label="价格" width="120">
           <template #default="{ row }">
-            <span class="price">¥{{ row.productPrice.toFixed(2) }}</span>
+            <span class="price">¥{{ typeof row.productPrice === 'number' ? row.productPrice.toFixed(2) : Number(row.productPrice).toFixed(2) }}</span>
           </template>
         </el-table-column>
         <el-table-column prop="createdTime" label="收藏时间" width="180"></el-table-column>
