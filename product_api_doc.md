@@ -1,865 +1,353 @@
-# 商品管理模块API文档
+# 商品模块接口文档
 
 ## 目录
-- [商品基础模块](#商品基础模块)
-- [商品收藏模块](#商品收藏模块)
-- [商品图片模块](#商品图片模块)
-- [商品举报模块](#商品举报模块)
-- [商品交易方式模块](#商品交易方式模块)
+- [添加发布商品位置](#添加发布商品位置)
+- [分页查询商品列表](#分页查询商品列表)
+- [用户发布商品列表](#用户发布商品列表)
 
-## 商品基础模块
+## 添加发布商品位置
 
-### 1. 添加商品
+### 接口名称
+添加发布商品位置
 
-**接口名称:** 添加商品
+### 接口描述
+添加发布商品时选择的位置信息(省市区)，插入到数据库中，并返回插入记录的ID
 
-**接口地址:** `/product/add`
+### 接口地址
+`/product/location/add`
 
-**接口方法:** POST
+### 请求方法
+POST
 
-**接口权限:** 需要用户登录
+### 请求头
+| 参数名        | 必填 | 说明                             | 示例                         |
+|--------------|------|----------------------------------|------------------------------|
+| Authorization | 是   | Bearer Token，用于认证            | Bearer [token]               |
 
-**请求参数:**
+### 请求参数
 
-| 参数名 | 类型 | 是否必须 | 说明 |
-| ------ | ---- | -------- | ---- |
-| title | String | 是 | 商品标题 |
-| description | String | 是 | 商品描述 |
-| price | Double | 是 | 商品售价 |
-| originalPrice | Double | 是 | 商品原价 |
-| categoryId | Integer | 是 | 商品分类ID |
-| conditionLevel | Integer | 是 | 商品新旧程度(1-10) |
-| location | String | 是 | 商品所在地 |
+| 参数名     | 类型   | 必填 | 说明     | 示例        |
+|-----------|-------|------|----------|------------|
+| province  | String | 是   | 省份名称  | 广东省      |
+| city      | String | 是   | 城市名称  | 深圳市      |
+| district  | String | 是   | 区/县名称 | 南山区      |
 
-**请求示例:**
-
+**请求示例**
 ```json
 {
-    "title": "iPhone 12",
-    "description": "95新iPhone12",
-    "price": 3999.00,
-    "originalPrice": 5999.00,
-    "categoryId": 1,
-    "conditionLevel": 9,
-    "location": "北京市"
+  "province": "广东省",
+  "city": "深圳市",
+  "district": "南山区"
 }
 ```
 
-**请求头:**
+### 响应参数
 
-```
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
-```
+| 参数名            | 类型    | 说明                 |
+|------------------|--------|---------------------|
+| code             | int    | 状态码，0表示成功      |
+| message          | String | 响应消息             |
+| data             | Object | 返回数据对象          |
+| data.id          | int    | 位置记录ID           |
+| data.province    | String | 省份名称             |
+| data.city        | String | 城市名称             |
+| data.district    | String | 区/县名称            |
 
-**成功响应:**
-
+**成功响应示例**
 ```json
 {
-    "code": 0,
-    "data": {
-        "productId": 1,
-        "title": "iPhone 12",
-        "description": "95新iPhone12",
-        "price": 3999.00,
-        "originalPrice": 5999.00,
-        "categoryId": 1,
+  "code": 0,
+  "message": "success",
+  "data": {
+    "id": 1,
+    "province": "广东省",
+    "city": "深圳市",
+    "district": "南山区"
+  }
+}
+```
+
+**失败响应示例**
+```json
+{
+  "code": 40000,
+  "message": "请求参数错误",
+  "data": null
+}
+```
+
+### 接口注意事项
+- 需要用户登录后访问此接口
+- 此接口适用于发布商品时添加商品所在位置信息
+- 返回的位置记录ID可用于商品表的location字段
+
+### 接口权限
+- 需要用户登录
+
+## 分页查询商品列表
+
+### 接口名称
+分页查询商品列表
+
+### 接口描述
+分页获取商品列表，支持多种筛选条件和排序方式
+
+### 接口地址
+`/product/list`
+
+### 请求方法
+GET
+
+### 请求参数
+
+| 参数名          | 类型    | 必填 | 说明                                          | 示例        |
+|----------------|--------|------|----------------------------------------------|------------|
+| pageNum        | int    | 否   | 当前页码，从1开始，默认1                        | 1          |
+| pageSize       | int    | 否   | 每页数量，默认10，最大50                        | 10         |
+| keyword        | String | 否   | 商品标题关键词搜索                              | iPhone     |
+| categoryId     | int    | 否   | 商品分类ID筛选                                 | 2          |
+| minPrice       | double | 否   | 价格下限筛选                                   | 1000       |
+| maxPrice       | double | 否   | 价格上限筛选                                   | 5000       |
+| sortField      | String | 否   | 排序字段(price-价格, time-时间, view-浏览量)，默认time | price |
+| sortOrder      | String | 否   | 排序方式(asc-升序, desc-降序)，默认desc          | asc        |
+| status         | int    | 否   | 商品状态筛选(0下架 1在售 2已售)，默认1            | 1          |
+| minConditionLevel | int | 否   | 最低成色等级筛选(1-10)                          | 8          |
+| location       | String | 否   | 地区筛选                                       | 广东省深圳市 |
+| sellerId       | long   | 否   | 卖家用户ID筛选                                 | 123        |
+
+**请求示例**
+```
+GET /product/list?pageNum=1&pageSize=10&categoryId=2&minPrice=1000&maxPrice=5000&sortField=price&sortOrder=asc
+```
+
+### 响应参数
+
+| 参数名             | 类型    | 说明                 |
+|-------------------|--------|---------------------|
+| code              | int    | 状态码，0表示成功      |
+| message           | String | 响应消息             |
+| data              | Object | 分页结果数据对象      |
+| data.pageNum      | int    | 当前页码             |
+| data.pageSize     | int    | 每页大小             |
+| data.total        | long   | 总记录数             |
+| data.pages        | int    | 总页数               |
+| data.list         | Array  | 当前页商品列表        |
+| data.hasPrevious  | boolean| 是否有上一页          |
+| data.hasNext      | boolean| 是否有下一页          |
+
+**商品列表项字段说明**
+
+| 字段名          | 类型      | 说明                 |
+|----------------|----------|---------------------|
+| productId      | long     | 商品ID               |
+| title          | String   | 商品标题              |
+| price          | decimal  | 商品价格              |
+| originalPrice  | decimal  | 商品原价              |
+| categoryId     | int      | 分类ID               |
+| categoryName   | String   | 分类名称              |
+| userId         | long     | 发布用户ID            |
+| username       | String   | 发布用户名            |
+| conditionLevel | int      | 物品成色(1-10级)      |
+| location       | String   | 商品所在地            |
+| viewCount      | int      | 浏览次数              |
+| createdTime    | datetime | 发布时间              |
+| mainImageUrl   | String   | 商品主图URL           |
+
+**成功响应示例**
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "pageNum": 1,
+    "pageSize": 10,
+    "total": 150,
+    "pages": 15,
+    "list": [
+      {
+        "productId": 101,
+        "title": "二手iPhone 12 Pro Max 256G",
+        "price": 5800.00,
+        "originalPrice": 9599.00,
+        "categoryId": 2,
+        "categoryName": "手机数码",
+        "userId": 1001,
+        "username": "zhangsan",
+        "conditionLevel": 8,
+        "location": "广东省深圳市南山区",
+        "viewCount": 235,
+        "createdTime": "2023-08-01T15:30:45.000+08:00",
+        "mainImageUrl": "https://example.com/images/products/iphone12.jpg"
+      },
+      {
+        "productId": 102,
+        "title": "联想拯救者Y7000P 游戏本",
+        "price": 6500.00,
+        "originalPrice": 8999.00,
+        "categoryId": 3,
+        "categoryName": "电脑办公",
+        "userId": 1002,
+        "username": "lisi",
         "conditionLevel": 9,
+        "location": "广东省深圳市南山区",
+        "viewCount": 188,
+        "createdTime": "2023-07-30T10:15:22.000+08:00",
+        "mainImageUrl": "https://example.com/images/products/lenovo.jpg"
+      }
+    ],
+    "hasPrevious": false,
+    "hasNext": true
+  }
+}
+```
+
+**失败响应示例**
+```json
+{
+  "code": 40000,
+  "message": "请求参数错误",
+  "data": null
+}
+```
+
+### 接口注意事项
+- 支持多种筛选条件组合查询
+- 支持按价格、发布时间、浏览量进行排序
+- 默认返回在售状态的商品
+
+### 接口权限
+- 无需权限，所有人可访问
+
+## 用户发布商品列表
+
+### 接口名称
+用户发布商品列表
+
+### 接口描述
+查询当前登录用户发布的所有商品列表，支持分页和状态筛选
+
+### 接口地址
+`/product/my-list`
+
+### 请求方法
+GET
+
+### 请求头
+| 参数名        | 必填 | 说明                             | 示例                         |
+|--------------|------|----------------------------------|------------------------------|
+| Authorization | 是   | Bearer Token，用于认证            | Bearer [token]               |
+
+### 请求参数
+
+| 参数名     | 类型    | 必填 | 说明                                        | 示例     |
+|-----------|--------|------|-------------------------------------------|----------|
+| pageNum   | int    | 否   | 当前页码，从1开始，默认1                      | 1        |
+| pageSize  | int    | 否   | 每页数量，默认10，最大50                      | 10       |
+| status    | int    | 否   | 商品状态筛选(0下架 1在售 2已售)，不传则查询全部状态 | 1       |
+| keyword   | String | 否   | 商品标题关键词搜索                            | iPhone   |
+| sortField | String | 否   | 排序字段(price-价格, time-时间, view-浏览量)，默认time | time |
+| sortOrder | String | 否   | 排序方式(asc-升序, desc-降序)，默认desc        | desc     |
+
+**请求示例**
+```
+GET /product/my-list?pageNum=1&pageSize=10&status=1&sortField=time&sortOrder=desc
+```
+
+### 响应参数
+
+| 参数名             | 类型    | 说明                 |
+|-------------------|--------|---------------------|
+| code              | int    | 状态码，0表示成功      |
+| message           | String | 响应消息             |
+| data              | Object | 分页结果数据对象      |
+| data.pageNum      | int    | 当前页码             |
+| data.pageSize     | int    | 每页大小             |
+| data.total        | long   | 总记录数             |
+| data.pages        | int    | 总页数               |
+| data.list         | Array  | 当前页商品列表        |
+| data.hasPrevious  | boolean| 是否有上一页          |
+| data.hasNext      | boolean| 是否有下一页          |
+
+**商品列表项字段说明**
+
+| 字段名          | 类型      | 说明                      |
+|----------------|----------|--------------------------|
+| productId      | long     | 商品ID                    |
+| title          | String   | 商品标题                   |
+| price          | decimal  | 商品价格                   |
+| originalPrice  | decimal  | 商品原价                   |
+| categoryId     | int      | 分类ID                    |
+| categoryName   | String   | 分类名称                   |
+| conditionLevel | int      | 物品成色(1-10级)           |
+| location       | String   | 商品所在地                 |
+| viewCount      | int      | 浏览次数                   |
+| status         | int      | 商品状态(0下架 1在售 2已售)  |
+| statusText     | String   | 商品状态文本描述            |
+| createdTime    | datetime | 发布时间                   |
+| mainImageUrl   | String   | 商品主图URL                |
+
+**成功响应示例**
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": {
+    "pageNum": 1,
+    "pageSize": 10,
+    "total": 25,
+    "pages": 3,
+    "list": [
+      {
+        "productId": 123,
+        "title": "二手iPhone 12 Pro Max 256G",
+        "price": 5800.00,
+        "originalPrice": 9599.00,
+        "categoryId": 2,
+        "categoryName": "手机数码",
+        "conditionLevel": 8,
+        "location": "广东省深圳市南山区",
+        "viewCount": 235,
         "status": 1,
-        "location": "北京市"
-    },
-    "message": "success"
-}
-```
-
-**失败响应:**
-
-```json
-{
-    "code": 40100,
-    "data": null,
-    "message": "用户未登录"
-}
-```
-
-```json
-{
-    "code": 40001,
-    "data": null,
-    "message": "参数不完整"
-}
-```
-
-**注意事项:**
-- 需要用户登录后才能添加商品
-- 商品新旧程度的范围为1-10，10表示全新
-- 添加商品成功后会返回商品的ID和详细信息
-
-### 2. 获取商品详情
-
-**接口名称:** 获取商品详情
-
-**接口地址:** `/product/detail/{productId}`
-
-**接口方法:** GET
-
-**接口权限:** 无需登录
-
-**路径参数:**
-
-| 参数名 | 类型 | 是否必须 | 说明 |
-| ------ | ---- | -------- | ---- |
-| productId | Integer | 是 | 商品ID |
-
-**成功响应:**
-
-```json
-{
-    "code": 0,
-    "data": {
-        "productId": 1,
-        "title": "iPhone 12",
-        "description": "95新iPhone12",
-        "price": 3999.00,
-        "originalPrice": 5999.00,
-        "categoryId": 1,
+        "statusText": "在售",
+        "createdTime": "2023-08-01T15:30:45.000+08:00",
+        "mainImageUrl": "https://example.com/images/products/iphone12.jpg"
+      },
+      {
+        "productId": 124,
+        "title": "联想拯救者Y7000P 游戏本",
+        "price": 6500.00,
+        "originalPrice": 8999.00,
+        "categoryId": 3,
+        "categoryName": "电脑办公",
         "conditionLevel": 9,
+        "location": "广东省深圳市南山区",
+        "viewCount": 188,
         "status": 1,
-        "location": "北京市",
-        "viewCount": 100,
-        "createdTime": "2025-04-14 10:00:00"
-    },
-    "message": "success"
-}
-```
-
-**失败响应:**
-
-```json
-{
-    "code": 40400,
-    "data": null,
-    "message": "商品不存在"
-}
-```
-
-**注意事项:**
-- 该接口不需要用户登录即可访问
-- 每次访问商品详情，商品的浏览量会增加
-
-### 3. 更新商品信息
-
-**接口名称:** 更新商品信息
-
-**接口地址:** `/product/update`
-
-**接口方法:** PUT
-
-**接口权限:** 需要用户登录，且只能更新自己发布的商品
-
-**请求参数:**
-
-| 参数名 | 类型 | 是否必须 | 说明 |
-| ------ | ---- | -------- | ---- |
-| productId | Integer | 是 | 商品ID |
-| title | String | 否 | 商品标题 |
-| description | String | 否 | 商品描述 |
-| price | Double | 否 | 商品售价 |
-| originalPrice | Double | 否 | 商品原价 |
-| categoryId | Integer | 否 | 商品分类ID |
-| conditionLevel | Integer | 否 | 商品新旧程度(1-10) |
-| location | String | 否 | 商品所在地 |
-
-**请求示例:**
-
-```json
-{
-    "productId": 1,
-    "title": "iPhone 12 Pro",
-    "price": 4999.00
-}
-```
-
-**请求头:**
-
-```
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
-```
-
-**成功响应:**
-
-```json
-{
-    "code": 0,
-    "data": {
-        "productId": 1,
-        "title": "iPhone 12 Pro",
-        "price": 4999.00,
-        "status": 1
-    },
-    "message": "success"
-}
-```
-
-**失败响应:**
-
-```json
-{
-    "code": 40100,
-    "data": null,
-    "message": "用户未登录"
-}
-```
-
-```json
-{
-    "code": 40300,
-    "data": null,
-    "message": "无权操作此商品"
-}
-```
-
-```json
-{
-    "code": 40400,
-    "data": null,
-    "message": "商品不存在"
-}
-```
-
-**注意事项:**
-- 需要用户登录
-- 只能更新自己发布的商品
-- 可以只更新部分字段，不需要传递所有字段
-- 商品状态无法通过此接口修改
-
-### 4. 删除商品
-
-**接口名称:** 删除商品
-
-**接口地址:** `/product/delete/{productId}`
-
-**接口方法:** DELETE
-
-**接口权限:** 需要用户登录，且只能删除自己发布的商品
-
-**路径参数:**
-
-| 参数名 | 类型 | 是否必须 | 说明 |
-| ------ | ---- | -------- | ---- |
-| productId | Integer | 是 | 商品ID |
-
-**请求头:**
-
-```
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
-```
-
-**成功响应:**
-
-```json
-{
-    "code": 0,
-    "data": "商品删除成功",
-    "message": "success"
-}
-```
-
-**失败响应:**
-
-```json
-{
-    "code": 40100,
-    "data": null,
-    "message": "用户未登录"
-}
-```
-
-```json
-{
-    "code": 40300,
-    "data": null,
-    "message": "无权删除此商品"
-}
-```
-
-```json
-{
-    "code": 40400,
-    "data": null,
-    "message": "商品不存在"
-}
-```
-
-**注意事项:**
-- 需要用户登录
-- 只能删除自己发布的商品
-- 删除商品后无法恢复
-- 如果商品已有订单，可能无法直接删除
-
-## 商品收藏模块
-
-### 1. 收藏商品
-
-**接口名称:** 收藏商品
-
-**接口地址:** `/product/favorite/add`
-
-**接口方法:** POST
-
-**接口权限:** 需要用户登录
-
-**请求参数:**
-
-| 参数名 | 类型 | 是否必须 | 说明 |
-| ------ | ---- | -------- | ---- |
-| productId | Integer | 是 | 商品ID |
-
-**请求示例:**
-
-```json
-{
-    "productId": 1
-}
-```
-
-**请求头:**
-
-```
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
-```
-
-**成功响应:**
-
-```json
-{
-    "code": 0,
-    "data": {
-        "favoriteId": 1,
-        "productId": 1,
-        "userId": 1,
-        "createdTime": "2025-04-14 10:00:00"
-    },
-    "message": "success"
-}
-```
-
-**失败响应:**
-
-```json
-{
-    "code": 40100,
-    "data": null,
-    "message": "用户未登录"
-}
-```
-
-```json
-{
-    "code": 40400,
-    "data": null,
-    "message": "商品不存在"
-}
-```
-
-```json
-{
-    "code": 40001,
-    "data": null,
-    "message": "已收藏过该商品"
-}
-```
-
-**注意事项:**
-- 需要用户登录
-- 同一用户不能重复收藏同一商品
-- 用户不能收藏自己发布的商品
-
-### 2. 取消收藏商品
-
-**接口名称:** 取消收藏商品
-
-**接口地址:** `/product/favorite/{productId}`
-
-**接口方法:** DELETE
-
-**接口权限:** 需要用户登录
-
-**路径参数:**
-
-| 参数名 | 类型 | 是否必须 | 说明 |
-| ------ | ---- | -------- | ---- |
-| productId | Integer | 是 | 商品ID |
-
-**请求头:**
-
-```
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
-```
-
-**成功响应:**
-
-```json
-{
-    "code": 0,
-    "data": "取消收藏成功",
-    "message": "success"
-}
-```
-
-**失败响应:**
-
-```json
-{
-    "code": 40100,
-    "data": null,
-    "message": "用户未登录"
-}
-```
-
-```json
-{
-    "code": 40400,
-    "data": null,
-    "message": "收藏记录不存在"
-}
-```
-
-**注意事项:**
-- 需要用户登录
-- 只能取消自己的收藏记录
-
-### 3. 获取收藏列表
-
-**接口名称:** 获取收藏列表
-
-**接口地址:** `/product/favorite/list`
-
-**接口方法:** GET
-
-**接口权限:** 需要用户登录
-
-**请求头:**
-
-```
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
-```
-
-**成功响应:**
-
-```json
-{
-    "code": 0,
-    "data": [
-        {
-            "favoriteId": 1,
-            "productId": 1,
-            "productTitle": "iPhone 12",
-            "productPrice": 3999.00,
-            "createdTime": "2025-04-14 10:00:00"
-        }
+        "statusText": "在售",
+        "createdTime": "2023-07-30T10:15:22.000+08:00",
+        "mainImageUrl": "https://example.com/images/products/lenovo.jpg"
+      }
     ],
-    "message": "success"
+    "hasPrevious": false,
+    "hasNext": true
+  }
 }
 ```
 
-**失败响应:**
-
+**失败响应示例**
 ```json
 {
-    "code": 40100,
-    "data": null,
-    "message": "用户未登录"
+  "code": 40100,
+  "message": "用户未登录",
+  "data": null
 }
 ```
 
-**注意事项:**
+### 接口注意事项
+- 需要用户登录后访问此接口
+- 此接口仅返回当前登录用户发布的商品
+- status参数不传时，返回所有状态的商品
+- 分页查询结果按创建时间降序排列
+
+### 接口权限
 - 需要用户登录
-- 返回的是当前登录用户的收藏列表
-- 返回结果按照收藏时间倒序排列
-
-## 商品图片模块
-
-### 1. 添加商品图片
-
-**接口名称:** 添加商品图片
-
-**接口地址:** `/product/image/add`
-
-**接口方法:** POST
-
-**接口权限:** 需要用户登录，且只能为自己的商品添加图片
-
-**请求参数:**
-
-| 参数名 | 类型 | 是否必须 | 说明 |
-| ------ | ---- | -------- | ---- |
-| productId | Integer | 是 | 商品ID |
-| imageUrl | String | 是 | 图片URL地址 |
-| isMain | Integer | 是 | 是否为主图(1-是，0-否) |
-| sortOrder | Integer | 否 | 排序序号(数字越小越靠前) |
-
-**请求示例:**
-
-```json
-{
-    "productId": 1,
-    "imageUrl": "http://example.com/images/1.jpg",
-    "isMain": 1,
-    "sortOrder": 0
-}
-```
-
-**请求头:**
-
-```
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
-```
-
-**成功响应:**
-
-```json
-{
-    "code": 0,
-    "data": {
-        "imageId": 1,
-        "productId": 1,
-        "imageUrl": "http://example.com/images/1.jpg",
-        "isMain": 1,
-        "sortOrder": 0
-    },
-    "message": "success"
-}
-```
-
-**失败响应:**
-
-```json
-{
-    "code": 40100,
-    "data": null,
-    "message": "用户未登录"
-}
-```
-
-```json
-{
-    "code": 40300,
-    "data": null,
-    "message": "无权为此商品添加图片"
-}
-```
-
-```json
-{
-    "code": 40400,
-    "data": null,
-    "message": "商品不存在"
-}
-```
-
-**注意事项:**
-- 需要用户登录
-- 只能为自己发布的商品添加图片
-- 若设置为主图，原有主图会自动变为非主图
-- 图片URL需要先上传到图片服务器获取，此接口只保存URL
-
-### 2. 删除商品图片
-
-**接口名称:** 删除商品图片
-
-**接口地址:** `/product/image/{productId}/{imageId}`
-
-**接口方法:** DELETE
-
-**接口权限:** 需要用户登录，且只能删除自己商品的图片
-
-**路径参数:**
-
-| 参数名 | 类型 | 是否必须 | 说明 |
-| ------ | ---- | -------- | ---- |
-| productId | Integer | 是 | 商品ID |
-| imageId | Integer | 是 | 图片ID |
-
-**请求头:**
-
-```
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
-```
-
-**成功响应:**
-
-```json
-{
-    "code": 0,
-    "data": "图片删除成功",
-    "message": "success"
-}
-```
-
-**失败响应:**
-
-```json
-{
-    "code": 40100,
-    "data": null,
-    "message": "用户未登录"
-}
-```
-
-```json
-{
-    "code": 40300,
-    "data": null,
-    "message": "无权删除此图片"
-}
-```
-
-```json
-{
-    "code": 40400,
-    "data": null,
-    "message": "图片不存在"
-}
-```
-
-**注意事项:**
-- 需要用户登录
-- 只能删除自己商品的图片
-- 删除主图后，系统会自动将排序最靠前的图片设为主图
-- 商品至少需要保留一张图片，不能删除全部图片
-
-## 商品举报模块
-
-### 1. 举报商品
-
-**接口名称:** 举报商品
-
-**接口地址:** `/product/report/add`
-
-**接口方法:** POST
-
-**接口权限:** 需要用户登录
-
-**请求参数:**
-
-| 参数名 | 类型 | 是否必须 | 说明 |
-| ------ | ---- | -------- | ---- |
-| productId | Integer | 是 | 商品ID |
-| reportType | Integer | 是 | 举报类型(1-虚假宣传,2-违禁品,3-诈骗,4-其他) |
-| reportContent | String | 是 | 举报内容 |
-
-**请求示例:**
-
-```json
-{
-    "productId": 1,
-    "reportType": 1,
-    "reportContent": "商品涉嫌虚假宣传"
-}
-```
-
-**请求头:**
-
-```
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
-```
-
-**成功响应:**
-
-```json
-{
-    "code": 0,
-    "data": {
-        "reportId": 1,
-        "productId": 1,
-        "reportType": 1,
-        "reportContent": "商品涉嫌虚假宣传",
-        "status": 0,
-        "createdTime": "2025-04-14 10:00:00"
-    },
-    "message": "success"
-}
-```
-
-**失败响应:**
-
-```json
-{
-    "code": 40100,
-    "data": null,
-    "message": "用户未登录"
-}
-```
-
-```json
-{
-    "code": 40400,
-    "data": null,
-    "message": "商品不存在"
-}
-```
-
-```json
-{
-    "code": 40001,
-    "data": null,
-    "message": "不能举报自己的商品"
-}
-```
-
-**注意事项:**
-- 需要用户登录
-- 用户不能举报自己的商品
-- 举报提交后状态为待处理(status=0)
-- 同一用户对同一商品在短时间内多次举报可能会被限制
-
-### 2. 获取商品举报列表
-
-**接口名称:** 获取商品举报列表
-
-**接口地址:** `/product/report/list/{productId}`
-
-**接口方法:** GET
-
-**接口权限:** 需要管理员权限
-
-**路径参数:**
-
-| 参数名 | 类型 | 是否必须 | 说明 |
-| ------ | ---- | -------- | ---- |
-| productId | Integer | 是 | 商品ID |
-
-**请求头:**
-
-```
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
-```
-
-**成功响应:**
-
-```json
-{
-    "code": 0,
-    "data": [
-        {
-            "reportId": 1,
-            "productId": 1,
-            "reportType": 1,
-            "reportContent": "商品涉嫌虚假宣传",
-            "status": 0,
-            "createdTime": "2025-04-14 10:00:00"
-        }
-    ],
-    "message": "success"
-}
-```
-
-**失败响应:**
-
-```json
-{
-    "code": 40100,
-    "data": null,
-    "message": "用户未登录"
-}
-```
-
-```json
-{
-    "code": 40300,
-    "data": null,
-    "message": "无权访问"
-}
-```
-
-```json
-{
-    "code": 40400,
-    "data": null,
-    "message": "商品不存在"
-}
-```
-
-**注意事项:**
-- 需要管理员权限
-- 返回指定商品的所有举报记录
-- 举报状态：0-待处理，1-已处理，2-已驳回
-
-## 商品交易方式模块
-
-### 1. 添加交易方式
-
-**接口名称:** 添加交易方式
-
-**接口地址:** `/product/trade/method/add`
-
-**接口方法:** POST
-
-**接口权限:** 需要管理员权限
-
-**请求参数:**
-
-| 参数名 | 类型 | 是否必须 | 说明 |
-| ------ | ---- | -------- | ---- |
-| methodName | String | 是 | 交易方式名称 |
-| methodDesc | String | 是 | 交易方式描述 |
-
-**请求示例:**
-
-```json
-{
-    "methodName": "上门回收",
-    "methodDesc": "由回收人员上门进行商品回收交易"
-}
-```
-
-**请求头:**
-
-```
-Authorization: Bearer eyJhbGciOiJIUzI1NiJ9...
-```
-
-**成功响应:**
-
-```json
-{
-    "code": 0,
-    "data": {
-        "methodId": 1,
-        "methodName": "上门回收",
-        "methodDesc": "由回收人员上门进行商品回收交易"
-    },
-    "message": "success"
-}
-```
-
-**失败响应:**
-
-```json
-{
-    "code": 40100,
-    "data": null,
-    "message": "用户未登录"
-}
-```
-
-```json
-{
-    "code": 40300,
-    "data": null,
-    "message": "无权添加交易方式"
-}
-```
-
-```json
-{
-    "code": 40001,
-    "data": null,
-    "message": "交易方式已存在"
-}
-```
-
-**注意事项:**
-- 需要管理员权限
-- 交易方式名称不能重复
-- 添加后的交易方式对所有商品有效 

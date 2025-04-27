@@ -162,4 +162,27 @@ export function unbanUser(targetUserId: number) {
       targetUserId
     }
   })
+}
+
+// 获取用户列表（管理员功能）
+export function getUserList(params?: {
+  username?: string
+  role?: string
+  isLocked?: boolean
+  pageNum?: number
+  pageSize?: number
+}) {
+  return request({
+    url: '/admin/user/list',
+    method: 'get',
+    params
+  })
+}
+
+// 获取用户总数（管理员功能）
+export function getUserCount() {
+  return request({
+    url: '/admin/user/count',
+    method: 'get'
+  })
 } 

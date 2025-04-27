@@ -175,4 +175,64 @@ export function addTradeMethod(methodData: {
     method: 'post',
     data: methodData
   })
+}
+
+// 获取商品列表
+export function getProductList(params?: {
+  pageNum?: number
+  pageSize?: number
+  keyword?: string
+  categoryId?: number
+  minPrice?: number
+  maxPrice?: number
+  sortField?: string
+  sortOrder?: string
+  status?: number
+  minConditionLevel?: number
+  location?: string
+  sellerId?: number
+}) {
+  return request({
+    url: '/product/list',
+    method: 'get',
+    params
+  })
+}
+
+// 获取当前用户发布的商品列表
+export function getMyProductList(params?: {
+  pageNum?: number
+  pageSize?: number
+  status?: number
+  keyword?: string
+  sortField?: string
+  sortOrder?: string
+}) {
+  return request({
+    url: '/product/my-list',
+    method: 'get',
+    params
+  })
+}
+
+// 添加商品位置
+export function addProductLocation(data: {
+  province: string
+  city: string
+  district: string
+}) {
+  return request({
+    url: '/product/location/add',
+    method: 'post',
+    data
+  })
+}
+
+// 获取商品总数
+export function getProductCount(status?: number) {
+  return request({
+    url: '/product/count',
+    method: 'get',
+    params: status !== undefined ? { status } : {}
+  })
 } 

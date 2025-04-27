@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 import * as userApi from '@/api/user'
+import eventBus from '@/utils/eventBus'
 
 const router = useRouter()
 
@@ -56,6 +57,8 @@ const handleRegister = async (formEl: FormInstance | undefined) => {
         const res = await userApi.register(registerForm.username, registerForm.password)
         if (res.code === 0) {
           ElMessage.success('注册成功，请登录')
+          // 触发用户注册成功事件，用于更新用户统计
+          eventBus.emit('user-registered')
           router.push('/login')
         } else {
           ElMessage.error(res.message || '注册失败')

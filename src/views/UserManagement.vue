@@ -42,43 +42,21 @@ const banDialogVisible = ref(false)
 const getUserList = async () => {
   loading.value = true
   try {
-    // 模拟接口，实际项目中需替换为真实接口调用
-    // const res = await userApi.getUserList()
-    // 模拟数据
-    setTimeout(() => {
-      userList.value = [
-        {
-          userId: 1,
-          username: 'admin',
-          phone: '13800138000',
-          email: 'admin@example.com',
-          role: '系统管理员',
-          isLocked: false,
-          createTime: '2023-01-01T12:00:00'
-        },
-        {
-          userId: 2,
-          username: 'zhangsan',
-          phone: '13812345678',
-          email: 'zhangsan@example.com',
-          role: '普通用户',
-          isLocked: false,
-          createTime: '2023-02-15T10:30:00'
-        },
-        {
-          userId: 3,
-          username: 'lisi',
-          phone: '13987654321',
-          email: 'lisi@example.com',
-          role: '普通用户',
-          isLocked: true,
-          createTime: '2023-03-20T14:20:00'
-        }
-      ]
-      loading.value = false
-    }, 500)
+    // 调用真实接口
+    const res = await userApi.getUserList({
+      username: searchKeyword.value || undefined,
+      pageNum: 1,
+      pageSize: 10
+    })
+    
+    if (res.code === 0) {
+      userList.value = res.data.list
+    } else {
+      ElMessage.error(res.message || '获取用户列表失败')
+    }
   } catch (error) {
     ElMessage.error('获取用户列表失败')
+  } finally {
     loading.value = false
   }
 }
