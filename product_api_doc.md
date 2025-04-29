@@ -281,7 +281,7 @@ GET /product/my-list?pageNum=1&pageSize=10&status=1&sortField=time&sortOrder=des
 | conditionLevel | int      | 物品成色(1-10级)           |
 | location       | String   | 商品所在地                 |
 | viewCount      | int      | 浏览次数                   |
-| status         | int      | 商品状态(0下架 1在售 2已售)  |
+| status         | int      |  (0下架 1在售 2已售)  |
 | statusText     | String   | 商品状态文本描述            |
 | createdTime    | datetime | 发布时间                   |
 | mainImageUrl   | String   | 商品主图URL                |
@@ -348,6 +348,262 @@ GET /product/my-list?pageNum=1&pageSize=10&status=1&sortField=time&sortOrder=des
 - 此接口仅返回当前登录用户发布的商品
 - status参数不传时，返回所有状态的商品
 - 分页查询结果按创建时间降序排列
+
+### 接口权限
+- 需要用户登录
+
+
+# 举报商品接口
+## 接口信息
+- **接口名称**：举报商品
+- **请求路径**：`/product/report/add`
+- **请求方法**：POST
+- **接口权限**：需要用户登录
+
+## 请求头
+Authorization: Bearer [token]
+
+## 请求参数
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| productId | Long | 是 | 被举报的商品ID |
+| reportType | Integer | 是 | 举报类型：1-虚假商品 2-违禁品 3-侵权 4-其他 |
+| reportContent | String | 是 | 举报内容描述 |
+
+## 请求示例
+```json
+{
+    "productId": 123,
+    "reportType": 1,
+    "reportContent": "该商品描述与实物不符，存在虚假宣传"
+}
+```
+
+## 响应示例
+### 成功响应
+```json
+{
+    "code": 0,
+    "data": "举报成功，我们会尽快处理",
+    "message": "success"
+}
+```
+
+### 失败响应
+```json
+{
+    "code": 40000,
+    "message": "商品不存在",
+    "data": null
+}
+```
+或
+```json
+{
+    "code": 40001,
+    "message": "您已经举报过该商品",
+    "data": null
+}
+```
+
+## 接口注意事项
+1. 需要用户登录后才能举报
+2. 同一用户对同一商品只能举报一次
+3. 举报内容不能为空
+4. 举报类型必须是1-4之间的整数
+
+# 查询举报信息接口
+
+## 接口信息
+- **接口名称**：查询举报信息
+- **请求路径**：`/product/report/list/{productId}`
+- **请求方法**：GET
+- **接口权限**：需要管理员权限
+
+## 请求头
+Authorization: Bearer [token]
+
+## 请求参数
+### 路径参数
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| productId | Long | 是 | 商品ID |
+
+### 查询参数
+| 参数名 | 类型 | 必填 | 说明 |
+|--------|------|------|------|
+| pageNum | Integer | 否 | 页码，默认1 |
+| pageSize | Integer | 否 | 每页数量，默认10 |
+| status | Integer | 否 | 处理状态：0-未处理 1-已处理，不传则查询全部 |
+| reportType | Integer | 否 | 举报类型：1-虚假商品 2-违禁品 3-侵权 4-其他，不传则查询全部 |
+| startTime | String | 否 | 开始时间，格式：yyyy-MM-dd HH:mm:ss |
+| endTime | String | 否 | 结束时间，格式：yyyy-MM-dd HH:mm:ss |
+
+## 请求示例
+GET /product/report/list/123?pageNum=1&pageSize=10&status=0&reportType=1&startTime=2024-01-01 00:00:00&endTime=2024-12-31 23:59:59
+
+## 响应示例
+### 成功响应
+```json
+{
+    "code": 0,
+    "data": {
+        "pageNum": 1,
+        "pageSize": 10,
+        "total": 100,
+        "pages": 10,
+        "list": [
+            {
+                "reportId": 1,
+                "productId": 123,
+                "productTitle": "二手iPhone 12",
+                "userId": 456,
+                "username": "张三",
+                "reportType": 1,
+                "reportTypeDesc": "虚假商品",
+                "reportContent": "该商品描述与实物不符",
+                "status": 0,
+                "statusDesc": "未处理",
+                "createdTime": "2024-01-01 12:00:00",
+                "handleTime": null
+            }
+        ]
+    },
+    "message": "success"
+}
+```
+
+### 失败响应
+```json
+{
+    "code": 40000,
+    "message": "参数错误",
+    "data": null
+}
+```
+
+## 接口注意事项
+1. 需要管理员权限才能访问
+2. 时间范围查询时，开始时间不能大于结束时间
+3. 分页参数pageSize最大值为50
+4. 返回的举报信息包含商品标题、举报人信息等关联数据
+
+
+### 获取举报商品列表
+
+**接口描述**：获取所有被举报的商品列表，支持分页和筛选
+
+**请求路径**：`/product/report/all`
+
+**请求方法**：`GET`
+
+**请求头**：
+```plaintext
+Authorization: Bearer [token]
+请求参数说明：
+
+参数名	类型	必填	说明
+pageNum	Integer	否	页码，默认1
+pageSize	Integer	否	每页数量，默认10
+status	Integer	否	处理状态：0-未处理 1-已处理，不传则查询全部
+reportType	Integer	否	举报类型：1-虚假商品 2-违禁品 3-侵权 4-其他，不传则查询全部
+startTime	String	否	开始时间，格式：yyyy-MM-dd HH:mm:ss
+endTime	String	否	结束时间，格式：yyyy-MM-dd HH:mm:ss
+请求示例：
+GET /product/report/all?pageNum=1&pageSize=10&status=0&reportType=1&startTime=2024-01-01 00:00:00&endTime=2024-12-31 23:59:59
+
+成功响应示例：
+{
+    "code": 0,
+    "data": {
+        "pageNum": 1,
+        "pageSize": 10,
+        "total": 100,
+        "pages": 10,
+        "list": [
+            {
+                "productId": 123,
+                "productTitle": "二手iPhone 12",
+                "reportCount": 5,
+                "latestReportTime": "2024-01-01 12:00:00"
+            }
+        ],
+        "hasPrevious": false,
+        "hasNext": true
+    },
+    "message": "success"
+}
+
+失败响应示例：
+{
+    "code": 40000,
+    "message": "参数错误",
+    "data": null
+}
+
+\### 接口权限
+- 需要用户登录
+
+## 下架商品
+
+### 接口名称
+下架商品
+
+### 接口描述
+根据商品ID将商品状态设置为下架（状态码：0）。管理员可以下架所有用户的商品。
+
+### 接口地址
+`/product/delete/{productId}`
+
+### 请求方法
+DELETE
+
+### 请求头
+| 参数名        | 必填 | 说明                             | 示例                         |
+|--------------|------|----------------------------------|------------------------------|
+| Authorization | 是   | Bearer Token，用于认证            | Bearer [token]               |
+
+### 请求参数
+
+| 参数名     | 类型   | 必填 | 说明     | 示例        |
+|-----------|-------|------|----------|------------|
+| productId | Long  | 是   | 商品ID   | 123        |
+
+**请求示例**
+```
+DELETE /product/delete/123
+```
+
+### 响应参数
+
+| 参数名            | 类型    | 说明                 |
+|------------------|--------|---------------------|
+| code             | int    | 状态码，0表示成功      |
+| message          | String | 响应消息             |
+| data             | Object | 返回数据对象，通常为null |
+
+**成功响应示例**
+```json
+{
+  "code": 0,
+  "message": "success",
+  "data": null
+}
+```
+
+**失败响应示例**
+```json
+{
+  "code": 40400,
+  "message": "商品不存在",
+  "data": null
+}
+```
+
+### 接口注意事项
+- 需要用户登录后访问此接口
+- 仅允许商品的发布者或管理员下架商品
+- 如果商品不存在或用户无权限操作，返回相应的错误信息
 
 ### 接口权限
 - 需要用户登录

@@ -55,6 +55,13 @@ const statusOptions = [
   { label: '下架', value: 0 }
 ]
 
+// 商品状态操作选项
+const statusActionOptions = {
+  0: { label: '上架', value: 1, type: 'success' }, // 下架 -> 在售
+  1: { label: '下架', value: 0, type: 'warning' }, // 在售 -> 下架
+  2: { label: '重新上架', value: 1, type: 'success' } // 已售 -> 在售
+}
+
 // 商品分类选项（实际项目中应该从接口获取）
 const categoryOptions = [
   { label: '全部分类', value: undefined },
@@ -93,6 +100,16 @@ const getStatusType = (status?: number) => {
   }
 }
 
+// 获取商品状态文本
+const getStatusText = (status?: number) => {
+  switch (status) {
+    case 0: return '下架'
+    case 1: return '在售'
+    case 2: return '已售'
+    default: return '未知'
+  }
+}
+
 // 格式化价格
 const formatPrice = (price: number) => {
   return price.toFixed(2)
@@ -105,12 +122,16 @@ const getProductList = async () => {
     const params = {
       ...searchParams,
       pageNum: pagination.pageNum,
-      pageSize: pagination.pageSize
+      pageSize: pagination.pageSize,
+      status: searchParams.status // 确保状态参数正确传递
     }
     
     const res = await productApi.getProductList(params)
     if (res.code === 0) {
-      productList.value = res.data.list
+      productList.value = res.data.list.map(item => ({
+        ...item,
+        status: item.status || 1 // 确保状态字段有默认值
+      }))
       pagination.total = res.data.total
       pagination.pages = res.data.pages
     } else {
@@ -159,30 +180,53 @@ const resetSearch = () => {
   getProductList()
 }
 
-// 下架商品
-const handleOffShelf = (productId: number) => {
-  ElMessageBox.confirm('确定要下架该商品吗？', '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(async () => {
-    try {
-      // 实际项目中应该调用API进行下架操作
-      // 模拟成功
-      ElMessage.success('商品下架成功')
+// 修改商品状态
+const handleStatusChange = async (productId: number, currentStatus: number) => {
+  const action = statusActionOptions[currentStatus]
+  if (!action) return
+
+  try {
+    const res = await productApi.updateProductStatus(productId, action.value)
+    if (res.code === 0) {
+      ElMessage.success('商品状态修改成功')
       getProductList() // 刷新列表
-    } catch (error) {
-      ElMessage.error('商品下架失败')
+    } else {
+      ElMessage.error(res.message || '商品状态修改失败')
     }
-  }).catch(() => {
-    // 取消操作
-  })
+  } catch (error) {
+    console.error('修改商品状态失败:', error)
+    ElMessage.error('商品状态修改失败')
+  }
 }
 
 // 排序方式切换
 const toggleSortOrder = () => {
   searchParams.sortOrder = searchParams.sortOrder === 'desc' ? 'asc' : 'desc'
   handleSearch()
+}
+
+// 下架商品
+const handleOffShelf = async (productId: number) => {
+  try {
+    await ElMessageBox.confirm('确定要下架该商品吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    
+    const res = await productApi.offShelfProduct(productId)
+    if (res.code === 0) {
+      ElMessage.success('商品下架成功')
+      getProductList() // 刷新列表
+    } else {
+      ElMessage.error(res.message || '商品下架失败')
+    }
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('商品下架失败:', error)
+      ElMessage.error('商品下架失败')
+    }
+  }
 }
 
 // 初始化加载数据
@@ -303,35 +347,34 @@ onMounted(() => {
           
           <el-table-column prop="viewCount" label="浏览量" width="80" />
           
-          <el-table-column label="状态" width="100">
+          <el-table-column label="状态" width="120">
             <template #default="scope">
               <el-tag 
                 :type="getStatusType(scope.row.status)"
                 effect="dark"
               >
-                {{ scope.row.statusText || (scope.row.status === 1 ? '在售' : scope.row.status === 2 ? '已售' : '下架') }}
+                {{ getStatusText(scope.row.status) }}
               </el-tag>
             </template>
           </el-table-column>
           
           <el-table-column prop="createdTime" label="发布时间" width="180" />
           
-          <el-table-column label="操作" width="150">
+          <el-table-column label="操作" width="200">
             <template #default="scope">
-              <el-button
-                v-if="scope.row.status === 1"
-                type="warning"
-                size="small"
-                @click="handleOffShelf(scope.row.productId)"
-              >
-                下架
-              </el-button>
               <el-button
                 type="primary"
                 size="small"
                 @click="$router.push(`/product-detail/${scope.row.productId}`)"
               >
                 查看
+              </el-button>
+              <el-button
+                size="small"
+                type="danger"
+                @click="handleOffShelf(scope.row.productId)"
+              >
+                下架
               </el-button>
             </template>
           </el-table-column>

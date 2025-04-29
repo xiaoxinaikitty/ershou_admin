@@ -8,90 +8,87 @@ const userStore = useUserStore()
 
 // 举报类型映射
 const reportTypes = {
-  1: '虚假宣传',
+  1: '虚假商品',
   2: '违禁品',
-  3: '诈骗',
+  3: '侵权',
   4: '其他'
 }
 
 // 举报状态映射
 const reportStatus = {
-  0: '待处理',
-  1: '已处理',
-  2: '已驳回'
+  0: '未处理',
+  1: '已处理'
 }
 
 // 举报状态标签类型
 const reportStatusTagType = {
   0: 'warning',
-  1: 'success',
-  2: 'danger'
+  1: 'success'
 }
 
-// 商品举报接口
-interface ProductReport {
-  reportId: number
+// 被举报商品接口
+interface ReportedProduct {
   productId: number
-  productTitle?: string
+  productTitle: string
   reportType: number
-  reportContent: string
-  status: number
+  reportTypeDesc: string
   createdTime: string
 }
 
-// 获取商品举报列表
-const reportList = ref<ProductReport[]>([])
+// 举报详情接口
+interface ReportDetail {
+  reportId: number
+  productId: number
+  productTitle: string
+  userId: number
+  username: string
+  reportType: number
+  reportTypeDesc: string
+  reportContent: string
+  status: number
+  statusDesc: string
+  createdTime: string
+  handleTime: string | null
+}
+
+// 获取被举报商品列表
+const productList = ref<ReportedProduct[]>([])
 const loading = ref(false)
-const totalReports = ref(0)
+const totalProducts = ref(0)
 const currentPage = ref(1)
 const pageSize = ref(10)
 
-// 当前查看的商品ID
-const currentProductId = ref<number | null>(null)
-
 // 搜索表单
 const searchForm = reactive({
-  productId: '',
   reportType: '',
-  status: ''
+  status: '',
+  startTime: '',
+  endTime: ''
 })
 
-// 获取商品举报列表
-const fetchReportList = async () => {
-  // 检查用户权限
-  if (!userStore.isAdmin) {
-    ElMessage.error('无权访问')
-    return
-  }
-
+// 获取被举报商品列表
+const fetchReportedProducts = async () => {
   loading.value = true
   try {
-    // 实际项目中应该有一个管理员获取所有举报的API，这里我们用模拟数据
-    // 如果有商品ID，则获取该商品的举报列表
-    if (currentProductId.value) {
-      const res = await productApi.getProductReportList(currentProductId.value)
-      if (res.code === 0) {
-        reportList.value = res.data
-        totalReports.value = res.data.length
-      } else {
-        ElMessage.error(res.message || '获取举报列表失败')
-      }
+    const params = {
+      pageNum: currentPage.value,
+      pageSize: pageSize.value,
+      status: searchForm.status ? Number(searchForm.status) : undefined,
+      reportType: searchForm.reportType ? Number(searchForm.reportType) : undefined,
+      startTime: searchForm.startTime,
+      endTime: searchForm.endTime
+    }
+    
+    const res = await productApi.getAllReportedProducts(params)
+    if (res.code === 0) {
+      // 处理举报类型映射
+      productList.value = res.data.list.map((item: ReportedProduct) => ({
+        ...item,
+        reportTypeDesc: reportTypes[item.reportType] || '未知类型'
+      }))
+      totalProducts.value = res.data.total
     } else {
-      // 模拟数据
-      const mockReports: ProductReport[] = []
-      for (let i = 1; i <= 10; i++) {
-        mockReports.push({
-          reportId: i,
-          productId: i,
-          productTitle: `测试商品 ${i}`,
-          reportType: i % 4 + 1,
-          reportContent: `这是举报内容 ${i}`,
-          status: i % 3,
-          createdTime: '2025-01-01 12:00:00'
-        })
-      }
-      reportList.value = mockReports
-      totalReports.value = 100 // 模拟总数据
+      ElMessage.error(res.message || '获取举报列表失败')
     }
   } catch (error) {
     console.error('获取举报列表失败:', error)
@@ -101,66 +98,97 @@ const fetchReportList = async () => {
   }
 }
 
+// 查看商品详情
+const handleViewProduct = (productId: number) => {
+  window.open(`/product-detail/${productId}`, '_blank')
+}
+
+// 查看举报详情
+const handleViewReports = async (productId: number) => {
+  try {
+    const res = await productApi.getProductReportList(productId)
+    if (res.code === 0) {
+      // 这里可以打开一个弹窗显示举报详情
+      ElMessageBox.alert(
+        `<div>
+          <h3>举报详情</h3>
+          ${res.data.list.map((report: ReportDetail) => `
+            <div style="margin-bottom: 10px; padding: 10px; border: 1px solid #eee; border-radius: 4px;">
+              <p><strong>举报人：</strong>${report.username}</p>
+              <p><strong>举报类型：</strong>${report.reportTypeDesc}</p>
+              <p><strong>举报内容：</strong>${report.reportContent}</p>
+              <p><strong>举报时间：</strong>${report.createdTime}</p>
+              <p><strong>处理状态：</strong>${report.statusDesc}</p>
+              ${report.handleTime ? `<p><strong>处理时间：</strong>${report.handleTime}</p>` : ''}
+            </div>
+          `).join('')}
+        </div>`,
+        '举报详情',
+        {
+          dangerouslyUseHTMLString: true,
+          customClass: 'report-detail-dialog'
+        }
+      )
+    } else {
+      ElMessage.error(res.message || '获取举报详情失败')
+    }
+  } catch (error) {
+    console.error('获取举报详情失败:', error)
+    ElMessage.error('获取举报详情失败')
+  }
+}
+
+// 重置搜索表单
+const resetSearchForm = () => {
+  searchForm.reportType = ''
+  searchForm.status = ''
+  searchForm.startTime = ''
+  searchForm.endTime = ''
+  currentPage.value = 1
+  fetchReportedProducts()
+}
+
 // 处理页码变化
 const handlePageChange = (page: number) => {
   currentPage.value = page
-  fetchReportList()
+  fetchReportedProducts()
 }
 
 // 处理每页显示数量变化
 const handleSizeChange = (size: number) => {
   pageSize.value = size
   currentPage.value = 1
-  fetchReportList()
+  fetchReportedProducts()
 }
 
-// 重置搜索表单
-const resetSearchForm = () => {
-  searchForm.productId = ''
-  searchForm.reportType = ''
-  searchForm.status = ''
-  currentProductId.value = null
-  fetchReportList()
-}
-
-// 处理举报处理
-const handleProcessReport = (row: ProductReport, action: 'process' | 'reject') => {
-  const statusText = action === 'process' ? '处理' : '驳回'
-  ElMessageBox.confirm(`确定要${statusText}该举报吗？`, '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(async () => {
-    try {
-      // 这里应该调用处理举报的API，目前API文档中没有提供，先模拟
-      // const res = await productApi.processReport(row.reportId, action)
-      const newStatus = action === 'process' ? 1 : 2
-      // 模拟成功响应
-      ElMessage.success(`${statusText}成功`)
-      // 更新列表中的状态
-      const index = reportList.value.findIndex(item => item.reportId === row.reportId)
-      if (index !== -1) {
-        reportList.value[index].status = newStatus
-      }
-    } catch (error) {
-      console.error(`${statusText}举报失败:`, error)
-      ElMessage.error(`${statusText}举报失败`)
+// 下架商品
+const handleOffShelf = async (productId: number) => {
+  try {
+    await ElMessageBox.confirm('确定要下架该商品吗？', '提示', {
+      confirmButtonText: '确定',
+      cancelButtonText: '取消',
+      type: 'warning'
+    })
+    
+    const res = await productApi.offShelfProduct(productId)
+    if (res.code === 0) {
+      ElMessage.success('商品下架成功')
+      fetchReportedProducts() // 刷新列表
+    } else {
+      ElMessage.error(res.message || '商品下架失败')
     }
-  }).catch(() => {
-    // 取消操作
-  })
-}
-
-// 查看商品详情
-const handleViewProduct = (productId: number) => {
-  // 实际项目中可以跳转到商品详情页面
-  ElMessage.info(`查看商品ID: ${productId}的详情`)
+  } catch (error) {
+    if (error !== 'cancel') {
+      console.error('商品下架失败:', error)
+      ElMessage.error('商品下架失败')
+    }
+  }
 }
 
 // 页面加载时检查权限并获取举报列表
 onMounted(() => {
   if (userStore.isAdmin) {
-    fetchReportList()
+    fetchReportedProducts()
   } else {
     ElMessage.error('无权访问此页面')
   }
@@ -177,12 +205,14 @@ onMounted(() => {
       </template>
 
       <el-form :model="searchForm" inline>
-        <el-form-item label="商品ID">
-          <el-input v-model="searchForm.productId" placeholder="商品ID" clearable></el-input>
-        </el-form-item>
         <el-form-item label="举报类型">
           <el-select v-model="searchForm.reportType" placeholder="全部类型" clearable>
-            <el-option v-for="(text, value) in reportTypes" :key="value" :label="text" :value="value"></el-option>
+            <el-option
+              v-for="(text, value) in reportTypes"
+              :key="value"
+              :label="text"
+              :value="value"
+            />
           </el-select>
         </el-form-item>
         <el-form-item label="状态">
@@ -190,45 +220,38 @@ onMounted(() => {
             <el-option v-for="(text, value) in reportStatus" :key="value" :label="text" :value="value"></el-option>
           </el-select>
         </el-form-item>
+        <el-form-item label="时间范围">
+          <el-date-picker
+            v-model="searchForm.startTime"
+            type="datetime"
+            placeholder="开始时间"
+            value-format="YYYY-MM-DD HH:mm:ss"
+          />
+          <span class="time-separator">-</span>
+          <el-date-picker
+            v-model="searchForm.endTime"
+            type="datetime"
+            placeholder="结束时间"
+            value-format="YYYY-MM-DD HH:mm:ss"
+          />
+        </el-form-item>
         <el-form-item>
-          <el-button type="primary" @click="currentProductId = Number(searchForm.productId) || null; fetchReportList()">搜索</el-button>
+          <el-button type="primary" @click="fetchReportedProducts">搜索</el-button>
           <el-button @click="resetSearchForm">重置</el-button>
         </el-form-item>
       </el-form>
     </el-card>
 
     <el-card class="table-card">
-      <el-table :data="reportList" stripe border v-loading="loading" empty-text="暂无举报记录">
-        <el-table-column prop="reportId" label="举报ID" width="80"></el-table-column>
+      <el-table :data="productList" stripe border v-loading="loading" empty-text="暂无举报记录">
         <el-table-column prop="productId" label="商品ID" width="80"></el-table-column>
-        <el-table-column prop="productTitle" label="商品名称" min-width="120" show-overflow-tooltip></el-table-column>
-        <el-table-column prop="reportType" label="举报类型" width="100">
-          <template #default="{ row }">
-            {{ reportTypes[row.reportType] }}
-          </template>
-        </el-table-column>
-        <el-table-column prop="reportContent" label="举报内容" min-width="150" show-overflow-tooltip></el-table-column>
-        <el-table-column prop="status" label="状态" width="100">
-          <template #default="{ row }">
-            <el-tag :type="reportStatusTagType[row.status]">{{ reportStatus[row.status] }}</el-tag>
-          </template>
-        </el-table-column>
-        <el-table-column prop="createdTime" label="举报时间" width="150"></el-table-column>
+        <el-table-column prop="productTitle" label="商品名称" min-width="200" show-overflow-tooltip></el-table-column>
+        <el-table-column prop="reportTypeDesc" label="举报类型" width="100"></el-table-column>
+        <el-table-column prop="createdTime" label="举报时间" width="180"></el-table-column>
         <el-table-column fixed="right" label="操作" width="200">
           <template #default="{ row }">
             <el-button size="small" @click="handleViewProduct(row.productId)">查看商品</el-button>
-            <el-button 
-              v-if="row.status === 0" 
-              size="small" 
-              type="success" 
-              @click="handleProcessReport(row, 'process')"
-            >处理</el-button>
-            <el-button 
-              v-if="row.status === 0" 
-              size="small" 
-              type="danger" 
-              @click="handleProcessReport(row, 'reject')"
-            >驳回</el-button>
+            <el-button size="small" type="danger" @click="handleOffShelf(row.productId)">下架</el-button>
           </template>
         </el-table-column>
       </el-table>
@@ -237,7 +260,7 @@ onMounted(() => {
         <el-pagination
           background
           layout="total, sizes, prev, pager, next, jumper"
-          :total="totalReports"
+          :total="totalProducts"
           :page-size="pageSize"
           :page-sizes="[10, 20, 50, 100]"
           :current-page="currentPage"
@@ -257,7 +280,7 @@ onMounted(() => {
   padding: 20px;
 }
 
-.search-card, .table-card {
+.search-card {
   margin-bottom: 20px;
 }
 
@@ -267,9 +290,25 @@ onMounted(() => {
   align-items: center;
 }
 
+.card-header span {
+  font-size: 18px;
+  font-weight: 500;
+}
+
+.time-separator {
+  margin: 0 10px;
+  color: #909399;
+}
+
 .pagination-container {
   margin-top: 20px;
   display: flex;
-  justify-content: flex-end;
+  justify-content: center;
+}
+
+:deep(.report-detail-dialog) {
+  max-width: 600px;
+  max-height: 80vh;
+  overflow-y: auto;
 }
 </style> 

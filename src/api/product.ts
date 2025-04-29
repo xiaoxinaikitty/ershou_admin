@@ -163,6 +163,38 @@ export function getProductReportList(productId: number) {
   })
 }
 
+// 获取所有商品举报列表
+export function getAllProductReports(params?: {
+  pageNum?: number
+  pageSize?: number
+  status?: number
+  reportType?: number
+  startTime?: string
+  endTime?: string
+}) {
+  return request({
+    url: '/product/report/list',
+    method: 'get',
+    params
+  })
+}
+
+// 获取所有被举报商品列表
+export function getAllReportedProducts(params?: {
+  pageNum?: number
+  pageSize?: number
+  status?: number
+  reportType?: number
+  startTime?: string
+  endTime?: string
+}) {
+  return request({
+    url: '/product/report/all',
+    method: 'get',
+    params
+  })
+}
+
 // 商品交易方式模块
 
 // 添加交易方式（管理员权限）
@@ -234,5 +266,31 @@ export function getProductCount(status?: number) {
     url: '/product/count',
     method: 'get',
     params: status !== undefined ? { status } : {}
+  })
+}
+
+// 更新商品状态
+export function updateProductStatus(productId: number, status: number) {
+  return request({
+    url: '/product/status/update',
+    method: 'put',
+    data: { productId, status }
+  })
+}
+
+// 处理举报
+export function processReport(reportId: number, action: 'process' | 'reject') {
+  return request({
+    url: `/product/report/${reportId}/process`,
+    method: 'put',
+    data: { action }
+  })
+}
+
+// 下架商品
+export function offShelfProduct(productId: number) {
+  return request({
+    url: `/product/delete/${productId}`,
+    method: 'delete'
   })
 } 
