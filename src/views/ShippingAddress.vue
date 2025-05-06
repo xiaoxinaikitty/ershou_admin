@@ -2,12 +2,12 @@
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
-import * as userApi from '@/api/user'
+import * as productApi from '@/api/product'
 
-interface AddressItem {
+interface ShippingAddressItem {
   addressId: number
   userId: number
-  consignee: string
+  shipperName: string
   region: string
   detail: string
   contactPhone: string
@@ -16,7 +16,7 @@ interface AddressItem {
 }
 
 // 地址列表
-const addressList = ref<AddressItem[]>([])
+const addressList = ref<ShippingAddressItem[]>([])
 // 加载状态
 const loading = ref(false)
 // 地址表单显示控制
@@ -27,7 +27,7 @@ const isEdit = ref(false)
 // 地址表单数据
 const addressForm = reactive({
   addressId: 0,
-  consignee: '',
+  shipperName: '',
   region: '',
   detail: '',
   contactPhone: '',
@@ -36,8 +36,8 @@ const addressForm = reactive({
 
 // 表单验证规则
 const rules = reactive<FormRules>({
-  consignee: [
-    { required: true, message: '请输入收货人姓名', trigger: 'blur' },
+  shipperName: [
+    { required: true, message: '请输入发货人姓名', trigger: 'blur' },
     { min: 2, max: 20, message: '长度在 2 到 20 个字符', trigger: 'blur' }
   ],
   region: [
@@ -61,14 +61,14 @@ const getAddressList = async () => {
   loading.value = true
   try {
     // 调用API获取地址列表
-    const res = await userApi.getUserAddressList()
+    const res = await productApi.getShippingAddressList()
     if (res.code === 0) {
       addressList.value = res.data || []
     } else {
-      ElMessage.error(res.message || '获取地址列表失败')
+      ElMessage.error(res.message || '获取发货地址列表失败')
     }
   } catch (error) {
-    ElMessage.error('获取地址列表失败')
+    ElMessage.error('获取发货地址列表失败')
   } finally {
     loading.value = false
   }
@@ -82,11 +82,11 @@ const openAddDialog = () => {
 }
 
 // 打开编辑地址对话框
-const openEditDialog = (address: AddressItem) => {
+const openEditDialog = (address: ShippingAddressItem) => {
   isEdit.value = true
   // 复制数据到表单
   addressForm.addressId = address.addressId
-  addressForm.consignee = address.consignee
+  addressForm.shipperName = address.shipperName
   addressForm.region = address.region
   addressForm.detail = address.detail
   addressForm.contactPhone = address.contactPhone
@@ -97,7 +97,7 @@ const openEditDialog = (address: AddressItem) => {
 // 重置表单
 const resetForm = () => {
   addressForm.addressId = 0
-  addressForm.consignee = ''
+  addressForm.shipperName = ''
   addressForm.region = ''
   addressForm.detail = ''
   addressForm.contactPhone = ''
@@ -114,11 +114,11 @@ const submitAddressForm = async (formEl: FormInstance | undefined) => {
       try {
         if (isEdit.value) {
           // 编辑现有地址 - 目前API中没有提供更新地址的方法
-          ElMessage.info('当前API暂未提供更新地址的功能')
+          ElMessage.info('当前API暂未提供更新发货地址的功能')
         } else {
           // 新增地址
-          const res = await userApi.addUserAddressByUser({
-            consignee: addressForm.consignee,
+          const res = await productApi.addShippingAddress({
+            shipperName: addressForm.shipperName,
             region: addressForm.region,
             detail: addressForm.detail,
             contactPhone: addressForm.contactPhone,
@@ -126,17 +126,17 @@ const submitAddressForm = async (formEl: FormInstance | undefined) => {
           })
           
           if (res.code === 0) {
-          ElMessage.success('地址添加成功')
+            ElMessage.success('发货地址添加成功')
             // 添加成功后重新获取地址列表
             await getAddressList()
-        dialogVisible.value = false
-        resetForm()
+            dialogVisible.value = false
+            resetForm()
           } else {
-            ElMessage.error(res.message || '添加地址失败')
+            ElMessage.error(res.message || '添加发货地址失败')
           }
         }
       } catch (error) {
-        ElMessage.error(isEdit.value ? '更新地址失败' : '添加地址失败')
+        ElMessage.error(isEdit.value ? '更新发货地址失败' : '添加发货地址失败')
       } finally {
         loading.value = false
       }
@@ -146,12 +146,12 @@ const submitAddressForm = async (formEl: FormInstance | undefined) => {
 
 // 删除地址 - 目前API中没有提供删除地址的方法
 const deleteAddress = (id: number) => {
-  ElMessageBox.confirm('确定要删除该地址吗?', '提示', {
+  ElMessageBox.confirm('确定要删除该发货地址吗?', '提示', {
     confirmButtonText: '确定',
     cancelButtonText: '取消',
     type: 'warning'
   }).then(() => {
-    ElMessage.info('当前API暂未提供删除地址的功能')
+    ElMessage.info('当前API暂未提供删除发货地址的功能')
   }).catch(() => {
     // 用户取消删除
   })
@@ -159,7 +159,7 @@ const deleteAddress = (id: number) => {
 
 // 设为默认地址 - 目前API中没有提供设置默认地址的方法
 const setAsDefault = (id: number) => {
-  ElMessage.info('当前API暂未提供设置默认地址的功能')
+  ElMessage.info('当前API暂未提供设置默认发货地址的功能')
 }
 
 // 页面加载时获取地址列表
@@ -173,19 +173,19 @@ onMounted(() => {
     <el-card class="address-card">
       <template #header>
         <div class="card-header">
-          <span>收货地址管理</span>
+          <span>发货地址管理</span>
           <el-button type="primary" @click="openAddDialog">
-            <el-icon><Plus /></el-icon>新增地址
+            <el-icon><Plus /></el-icon>新增发货地址
           </el-button>
         </div>
       </template>
       
       <div v-loading="loading">
         <el-empty 
-          description="暂无收货地址" 
+          description="暂无发货地址" 
           v-if="addressList.length === 0"
         >
-          <el-button type="primary" @click="openAddDialog">添加地址</el-button>
+          <el-button type="primary" @click="openAddDialog">添加发货地址</el-button>
         </el-empty>
         
         <div class="address-list" v-else>
@@ -199,7 +199,7 @@ onMounted(() => {
             <div class="address-content">
               <div class="address-info">
                 <div class="address-title">
-                  <span class="name">{{ item.consignee }}</span>
+                  <span class="name">{{ item.shipperName }}</span>
                   <span class="phone">{{ item.contactPhone }}</span>
                   <el-tag size="small" type="danger" v-if="item.isDefault">默认</el-tag>
                 </div>
@@ -240,7 +240,7 @@ onMounted(() => {
     
     <!-- 新增/编辑地址对话框 -->
     <el-dialog
-      :title="isEdit ? '编辑地址' : '新增地址'"
+      :title="isEdit ? '编辑发货地址' : '新增发货地址'"
       v-model="dialogVisible"
       width="500px"
     >
@@ -250,50 +250,43 @@ onMounted(() => {
         :rules="rules"
         label-width="100px"
       >
-        <el-form-item label="收货人" prop="consignee">
-          <el-input 
-            v-model="addressForm.consignee"
-            placeholder="请输入收货人姓名"
-          />
+        <el-form-item label="发货人" prop="shipperName">
+          <el-input v-model="addressForm.shipperName" placeholder="请输入发货人姓名" />
         </el-form-item>
         
         <el-form-item label="所在地区" prop="region">
-          <el-input 
-            v-model="addressForm.region"
-            placeholder="请选择所在地区"
-          />
+          <el-input v-model="addressForm.region" placeholder="请输入所在地区" />
         </el-form-item>
         
         <el-form-item label="详细地址" prop="detail">
           <el-input 
-            v-model="addressForm.detail"
-            type="textarea"
+            v-model="addressForm.detail" 
+            type="textarea" 
+            :rows="2" 
             placeholder="请输入详细地址"
-            :rows="2"
           />
         </el-form-item>
         
         <el-form-item label="联系电话" prop="contactPhone">
-          <el-input 
-            v-model="addressForm.contactPhone"
-            placeholder="请输入联系电话"
-          />
+          <el-input v-model="addressForm.contactPhone" placeholder="请输入手机号码" />
         </el-form-item>
         
-        <el-form-item label="默认地址">
-          <el-switch v-model="addressForm.isDefault" />
+        <el-form-item label="设为默认" prop="isDefault">
+          <el-switch 
+            v-model="addressForm.isDefault" 
+            active-text="是" 
+            inactive-text="否"
+          />
         </el-form-item>
       </el-form>
       
       <template #footer>
-        <el-button @click="dialogVisible = false">取消</el-button>
-        <el-button 
-          type="primary" 
-          :loading="loading"
-          @click="submitAddressForm(addressFormRef)"
-        >
-          确定
-        </el-button>
+        <span class="dialog-footer">
+          <el-button @click="dialogVisible = false">取消</el-button>
+          <el-button type="primary" @click="submitAddressForm(addressFormRef)">
+            确认
+          </el-button>
+        </span>
       </template>
     </el-dialog>
   </div>
@@ -305,8 +298,8 @@ onMounted(() => {
 }
 
 .address-card {
-  max-width: 1000px;
-  margin: 0 auto;
+  width: 100%;
+  margin-bottom: 20px;
 }
 
 .card-header {
@@ -315,58 +308,57 @@ onMounted(() => {
   align-items: center;
 }
 
-.card-header span {
-  font-size: 18px;
-  font-weight: 500;
-}
-
 .address-list {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(400px, 1fr));
-  gap: 16px;
-  margin-top: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 20px;
 }
 
 .address-item {
+  position: relative;
   transition: all 0.3s;
-  border: 1px solid #ebeef5;
 }
 
 .address-item.is-default {
-  border-color: #f56c6c;
+  border: 1px solid #f56c6c;
 }
 
 .address-content {
   display: flex;
-  justify-content: space-between;
-}
-
-.address-info {
-  flex: 1;
+  flex-direction: column;
+  gap: 10px;
 }
 
 .address-title {
-  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 5px;
 }
 
 .name {
   font-weight: bold;
-  margin-right: 10px;
+  font-size: 16px;
 }
 
 .phone {
-  color: #606266;
-  margin-right: 10px;
+  color: #666;
 }
 
 .address-detail {
-  color: #606266;
+  color: #333;
   line-height: 1.5;
 }
 
 .address-actions {
   display: flex;
-  flex-direction: column;
-  justify-content: center;
+  justify-content: flex-end;
+  margin-top: 10px;
 }
-</style>
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+</style> 

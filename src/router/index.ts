@@ -67,7 +67,16 @@ const router = createRouter({
       name: 'address',
       component: () => import('@/views/Address.vue'),
       meta: {
-        title: '地址管理',
+        title: '收货地址管理',
+        requiresAuth: true
+      }
+    },
+    {
+      path: '/shipping-address',
+      name: 'shippingAddress',
+      component: () => import('@/views/ShippingAddress.vue'),
+      meta: {
+        title: '发货地址管理',
         requiresAuth: true
       }
     },

@@ -293,4 +293,27 @@ export function offShelfProduct(productId: number) {
     url: `/product/delete/${productId}`,
     method: 'delete'
   })
+}
+
+// 添加发货地址
+export function addShippingAddress(addressData: {
+  shipperName: string
+  region: string
+  detail: string
+  contactPhone: string
+  isDefault: boolean
+}) {
+  return request({
+    url: '/shipping/address/add',
+    method: 'post',
+    data: addressData
+  })
+}
+
+// 获取发货地址列表
+export function getShippingAddressList() {
+  return request({
+    url: '/shipping/address/list',
+    method: 'get'
+  })
 } 

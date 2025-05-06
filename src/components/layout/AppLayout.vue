@@ -82,10 +82,20 @@ const handleLogout = () => {
           <template #title>修改密码</template>
         </el-menu-item>
         
-        <el-menu-item index="/address">
-          <el-icon><Location /></el-icon>
-          <template #title>地址管理</template>
-        </el-menu-item>
+        <el-sub-menu index="/addresses">
+          <template #title>
+            <el-icon><Location /></el-icon>
+            <span>地址管理</span>
+          </template>
+          <el-menu-item index="/address">
+            <el-icon><Location /></el-icon>
+            <span>收货地址</span>
+          </el-menu-item>
+          <el-menu-item index="/shipping-address">
+            <el-icon><Van /></el-icon>
+            <span>发货地址</span>
+          </el-menu-item>
+        </el-sub-menu>
         
         <el-menu-item index="/user-management" v-if="userStore.isAdmin">
           <el-icon><UserFilled /></el-icon>

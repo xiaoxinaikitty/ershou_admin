@@ -186,3 +186,26 @@ export function getUserCount() {
     method: 'get'
   })
 } 
+
+// 根据用户ID添加收货地址
+export function addUserAddressByUser(addressData: {
+  consignee: string
+  region: string
+  detail: string
+  contactPhone: string
+  isDefault: boolean
+}) {
+  return request({
+    url: '/user/address/addByUser',
+    method: 'post',
+    data: addressData
+  })
+}
+
+// 获取用户收货地址列表
+export function getUserAddressList() {
+  return request({
+    url: '/user/address/list',
+    method: 'get'
+  })
+} 
