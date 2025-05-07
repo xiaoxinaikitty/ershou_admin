@@ -2,7 +2,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
-import { ElMessage } from 'element-plus'
+import { ElMessage, ElNotification } from 'element-plus'
 import type { FormInstance, FormRules } from 'element-plus'
 
 const router = useRouter()
@@ -41,7 +41,18 @@ const handleLogin = async (formEl: FormInstance | undefined) => {
       try {
         const res = await userStore.adminLogin(loginForm.username, loginForm.password)
         if (res.code === 0) {
+          // 显示成功消息
           ElMessage.success('管理员登录成功')
+          
+          // 添加登录成功弹窗
+          ElNotification({
+            title: '登录成功',
+            message: `欢迎回来，${loginForm.username}！`,
+            type: 'success',
+            duration: 3000,
+            position: 'top-right',
+          })
+          
           router.push('/dashboard')
         } else {
           ElMessage.error(res.message || '登录失败')
