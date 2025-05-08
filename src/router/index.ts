@@ -148,6 +148,17 @@ const router = createRouter({
         requiresAuth: true
       },
       props: true
+    },
+    // 反馈管理路由
+    {
+      path: '/feedback-management',
+      name: 'feedbackManagement',
+      component: () => import('@/views/FeedbackManagement.vue'),
+      meta: {
+        title: '用户反馈管理',
+        requiresAuth: true,
+        requiresAdmin: true
+      }
     }
   ]
 })

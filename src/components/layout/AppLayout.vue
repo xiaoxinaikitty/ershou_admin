@@ -2,6 +2,24 @@
 import { computed, ref } from 'vue'
 import { useRouter } from 'vue-router'
 import { useUserStore } from '@/stores/user'
+import { 
+  HomeFilled, 
+  Goods, 
+  List, 
+  Star, 
+  Warning, 
+  SwitchButton, 
+  ShoppingCart, 
+  User, 
+  Lock, 
+  Location, 
+  Van, 
+  UserFilled, 
+  ArrowDown, 
+  DArrowLeft, 
+  DArrowRight,
+  ChatDotRound 
+} from '@element-plus/icons-vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -96,6 +114,11 @@ const handleLogout = () => {
             <span>发货地址</span>
           </el-menu-item>
         </el-sub-menu>
+        
+        <el-menu-item index="/feedback-management" v-if="userStore.isAdmin">
+          <el-icon><ChatDotRound /></el-icon>
+          <template #title>用户反馈</template>
+        </el-menu-item>
         
         <el-menu-item index="/user-management" v-if="userStore.isAdmin">
           <el-icon><UserFilled /></el-icon>
