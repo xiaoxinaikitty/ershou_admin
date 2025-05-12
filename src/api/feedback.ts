@@ -104,6 +104,26 @@ interface SetPriorityParams {
   priorityLevel: number
 }
 
+// 反馈数量统计响应类型
+interface FeedbackCountResponse {
+  totalCount: number
+  unprocessedCount: number
+  processingCount: number
+  processedCount: number
+  typeCounts: {
+    type1Count: number
+    type2Count: number
+    type3Count: number
+    type4Count: number
+    type5Count: number
+  }
+  priorityCounts: {
+    normalCount: number
+    importantCount: number
+    urgentCount: number
+  }
+}
+
 /**
  * 获取用户反馈列表
  * @param params 请求参数
@@ -138,6 +158,14 @@ export const replyFeedback = (params: FeedbackReplyParams): Promise<boolean> => 
  */
 export const setPriorityLevel = (params: SetPriorityParams): Promise<boolean> => {
   return request.put('admin/feedback/priority', null, { params })
+}
+
+/**
+ * 获取用户反馈消息的数量统计
+ * @returns 反馈数量统计信息
+ */
+export const getFeedbackCount = (): Promise<FeedbackCountResponse> => {
+  return request.get('admin/feedback/count')
 }
 
 // 导出反馈类型枚举

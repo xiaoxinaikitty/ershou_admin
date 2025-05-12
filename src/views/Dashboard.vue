@@ -4,9 +4,19 @@ import { useUserStore } from '@/stores/user'
 import { useRouter } from 'vue-router'
 import * as userApi from '@/api/user'
 import * as productApi from '@/api/product'
+import * as feedbackApi from '@/api/feedback'
+import * as orderApi from '@/api/order'
 import { ElMessage } from 'element-plus'
 import eventBus from '@/utils/eventBus'
-import { Refresh } from '@element-plus/icons-vue'
+import { 
+  Refresh, 
+  ShoppingCart, 
+  User, 
+  Wallet, 
+  Box, 
+  Van, 
+  CircleCheck 
+} from '@element-plus/icons-vue'
 
 const router = useRouter()
 const userStore = useUserStore()
@@ -18,9 +28,18 @@ const isAdmin = computed(() => userStore.isAdmin)
 // 系统统计数据
 const stats = ref({
   userCount: 0, // 可能是数字或对象
-  orderCount: 0,
+  orderCount: {
+    total: 0,
+    pendingPayment: 0,
+    pendingShipment: 0,
+    pendingReceipt: 0,
+    completed: 0,
+    cancelled: 0,
+    afterSale: 0
+  },
   productCount: 0,
-  messageCount: 0
+  messageCount: 0,
+  feedbackStats: null
 })
 
 // 计算实际显示的用户数量
@@ -44,6 +63,14 @@ const displayUserCount = computed(() => {
     }
   }
   
+  return 0
+})
+
+// 计算未处理的反馈消息数量
+const unprocessedFeedbackCount = computed(() => {
+  if (stats.value.feedbackStats && 'unprocessedCount' in stats.value.feedbackStats) {
+    return stats.value.feedbackStats.unprocessedCount
+  }
   return 0
 })
 
@@ -102,6 +129,34 @@ const fetchProductCount = async () => {
   }
 }
 
+// 获取反馈消息数量统计
+const fetchFeedbackCount = async () => {
+  if (!isAdmin.value) return
+  
+  try {
+    const feedbackCountRes = await feedbackApi.getFeedbackCount()
+    stats.value.feedbackStats = feedbackCountRes
+    // 将未处理的反馈数量作为未读消息数量
+    stats.value.messageCount = feedbackCountRes.unprocessedCount
+  } catch (error) {
+    console.error('获取反馈消息数量失败:', error)
+  }
+}
+
+// 获取订单数量
+const fetchOrderCount = async () => {
+  if (!isAdmin.value) return
+  
+  try {
+    const orderCountRes = await orderApi.getOrderCount()
+    if (orderCountRes.code === 0 && orderCountRes.data) {
+      stats.value.orderCount = orderCountRes.data
+    }
+  } catch (error) {
+    console.error('获取订单数量统计失败:', error)
+  }
+}
+
 // 获取数据
 const fetchData = async () => {
   if (!isAdmin.value) return
@@ -114,10 +169,11 @@ const fetchData = async () => {
     // 获取商品数量
     await fetchProductCount()
     
-    // 这里可以添加其他统计数据的获取
-    // 目前使用模拟数据
-    stats.value.orderCount = 3650
-    stats.value.messageCount = 56
+    // 获取反馈消息数量
+    await fetchFeedbackCount()
+    
+    // 获取订单数量统计
+    await fetchOrderCount()
     
   } catch (error) {
     ElMessage.error('获取统计数据失败')
@@ -129,9 +185,11 @@ const fetchData = async () => {
 // 设置自动刷新
 const setupAutoRefresh = () => {
   if (isAdmin.value && !refreshTimer) {
-    // 每60秒自动刷新一次用户数量
+    // 每60秒自动刷新一次数据
     refreshTimer = window.setInterval(() => {
       fetchUserCount()
+      fetchFeedbackCount()
+      fetchOrderCount()
     }, 60000)
   }
 }
@@ -216,9 +274,35 @@ onUnmounted(() => {
                 <el-icon><ShoppingCart /></el-icon>
               </div>
               <div class="stat-info">
-                <div class="stat-value">{{ stats.orderCount }}</div>
+                <div class="stat-value">{{ stats.orderCount.total }}</div>
                 <div class="stat-label">订单总数</div>
               </div>
+            </div>
+            <div class="order-details order-details-hover" v-if="stats.orderCount.total > 0">
+              <el-tooltip content="待付款" placement="top">
+                <div class="order-detail-item">
+                  <el-icon><Wallet /></el-icon>
+                  <span>{{ stats.orderCount.pendingPayment }}</span>
+                </div>
+              </el-tooltip>
+              <el-tooltip content="待发货" placement="top">
+                <div class="order-detail-item">
+                  <el-icon><Box /></el-icon>
+                  <span>{{ stats.orderCount.pendingShipment }}</span>
+                </div>
+              </el-tooltip>
+              <el-tooltip content="待收货" placement="top">
+                <div class="order-detail-item">
+                  <el-icon><Van /></el-icon>
+                  <span>{{ stats.orderCount.pendingReceipt }}</span>
+                </div>
+              </el-tooltip>
+              <el-tooltip content="已完成" placement="top">
+                <div class="order-detail-item">
+                  <el-icon><CircleCheck /></el-icon>
+                  <span>{{ stats.orderCount.completed }}</span>
+                </div>
+              </el-tooltip>
             </div>
           </el-card>
         </el-col>
@@ -245,7 +329,7 @@ onUnmounted(() => {
               </div>
               <div class="stat-info">
                 <div class="stat-value">{{ stats.messageCount }}</div>
-                <div class="stat-label">未读消息</div>
+                <div class="stat-label">未读反馈</div>
               </div>
             </div>
           </el-card>
@@ -419,5 +503,34 @@ onUnmounted(() => {
 .nav-name {
   font-size: 14px;
   margin-top: 10px;
+}
+
+.order-details {
+  display: flex;
+  justify-content: space-around;
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px dashed #eee;
+}
+
+.order-detail-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  font-size: 12px;
+  color: #606266;
+}
+
+.order-detail-item .el-icon {
+  font-size: 16px;
+  margin-bottom: 4px;
+}
+
+.order-details-hover {
+  display: none;
+}
+
+.stat-card:hover .order-details-hover {
+  display: flex;
 }
 </style> 

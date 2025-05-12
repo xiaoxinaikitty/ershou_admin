@@ -159,6 +159,17 @@ const router = createRouter({
         requiresAuth: true,
         requiresAdmin: true
       }
+    },
+    // 营销活动管理路由
+    {
+      path: '/promotion-management',
+      name: 'promotionManagement',
+      component: () => import('@/views/PromotionManagement.vue'),
+      meta: {
+        title: '营销活动管理',
+        requiresAuth: true,
+        requiresAdmin: true
+      }
     }
   ]
 })

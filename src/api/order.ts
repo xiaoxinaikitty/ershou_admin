@@ -124,4 +124,12 @@ export function shipOrder(orderId: number, shipData: {
     method: 'post',
     data: shipData
   })
+}
+
+// 获取订单数量统计
+export function getOrderCount() {
+  return request({
+    url: '/order/count',
+    method: 'get'
+  })
 } 
