@@ -23,10 +23,31 @@ const searchKeyword = ref('')
 // 用户商店
 const userStore = useUserStore()
 
+// 分页数据
+const pagination = reactive({
+  pageNum: 1,
+  pageSize: 10,
+  total: 0,
+  pages: 0
+})
+
+// 排序参数
+const sortParams = reactive({
+  sortField: 'userId',
+  sortOrder: 'desc'
+})
+
 // 角色选项
 const roleOptions = [
   { label: '普通用户', value: '普通用户' },
   { label: '系统管理员', value: '系统管理员' }
+]
+
+// 排序字段选项
+const sortFieldOptions = [
+  { label: '用户ID', value: 'userId' },
+  { label: '注册时间', value: 'createTime' },
+  { label: '用户名', value: 'username' }
 ]
 
 // 封禁理由表单
@@ -42,15 +63,20 @@ const banDialogVisible = ref(false)
 const getUserList = async () => {
   loading.value = true
   try {
-    // 调用真实接口
+    // 调用真实接口，传入分页参数，添加排序参数
     const res = await userApi.getUserList({
       username: searchKeyword.value || undefined,
-      pageNum: 1,
-      pageSize: 10
+      pageNum: pagination.pageNum,
+      pageSize: pagination.pageSize,
+      sortField: sortParams.sortField,
+      sortOrder: sortParams.sortOrder
     })
     
     if (res.code === 0) {
       userList.value = res.data.list
+      // 更新分页信息
+      pagination.total = res.data.total
+      pagination.pages = res.data.pages
     } else {
       ElMessage.error(res.message || '获取用户列表失败')
     }
@@ -61,29 +87,36 @@ const getUserList = async () => {
   }
 }
 
+// 切换排序方向
+const toggleSortOrder = () => {
+  sortParams.sortOrder = sortParams.sortOrder === 'desc' ? 'asc' : 'desc'
+  getUserList()
+}
+
+// 处理页码变更
+const handleCurrentChange = (val: number) => {
+  pagination.pageNum = val
+  getUserList()
+}
+
+// 处理每页条数变更
+const handleSizeChange = (val: number) => {
+  pagination.pageSize = val
+  pagination.pageNum = 1 // 重置为第一页
+  getUserList()
+}
+
 // 搜索用户
 const handleSearch = () => {
-  // 实际项目中可能需要调用后端接口进行搜索
-  // 这里使用前端过滤模拟
-  if (!searchKeyword.value) {
-    getUserList()
-    return
-  }
-  
-  // 简单的前端搜索
-  const keyword = searchKeyword.value.toLowerCase()
-  getUserList().then(() => {
-    userList.value = userList.value.filter(user => 
-      user.username.toLowerCase().includes(keyword) || 
-      (user.phone && user.phone.includes(keyword)) || 
-      (user.email && user.email.toLowerCase().includes(keyword))
-    )
-  })
+  // 重置为第一页
+  pagination.pageNum = 1
+  getUserList()
 }
 
 // 重置搜索
 const resetSearch = () => {
   searchKeyword.value = ''
+  pagination.pageNum = 1 // 重置为第一页
   getUserList()
 }
 
@@ -100,12 +133,13 @@ const handleRoleChange = async (userId: number, role: string) => {
   loading.value = true
   try {
     // 实际项目中调用接口
-    // const res = await userApi.updateUserRole({ targetUserId: userId, role })
-    // 模拟成功
-    const user = userList.value.find(item => item.userId === userId)
-    if (user) {
-      user.role = role
+    const res = await userApi.updateUserRole({ targetUserId: userId, role })
+    if (res.code === 0) {
       ElMessage.success('用户角色修改成功')
+    } else {
+      ElMessage.error(res.message || '修改用户角色失败')
+      // 恢复原始角色值
+      getUserList()
     }
   } catch (error) {
     ElMessage.error('修改用户角色失败')
@@ -134,13 +168,13 @@ const banUser = async () => {
   loading.value = true
   try {
     // 实际项目中调用接口
-    // const res = await userApi.banUser(banReasonForm)
-    // 模拟成功
-    const user = userList.value.find(item => item.userId === banReasonForm.targetUserId)
-    if (user) {
-      user.isLocked = true
+    const res = await userApi.banUser(banReasonForm)
+    if (res.code === 0) {
       ElMessage.success('用户封禁成功')
       banDialogVisible.value = false
+      getUserList() // 刷新用户列表
+    } else {
+      ElMessage.error(res.message || '封禁用户失败')
     }
   } catch (error) {
     ElMessage.error('封禁用户失败')
@@ -154,12 +188,12 @@ const unbanUser = async (userId: number) => {
   loading.value = true
   try {
     // 实际项目中调用接口
-    // const res = await userApi.unbanUser(userId)
-    // 模拟成功
-    const user = userList.value.find(item => item.userId === userId)
-    if (user) {
-      user.isLocked = false
+    const res = await userApi.unbanUser(userId)
+    if (res.code === 0) {
       ElMessage.success('用户解封成功')
+      getUserList() // 刷新用户列表
+    } else {
+      ElMessage.error(res.message || '解封用户失败')
     }
   } catch (error) {
     ElMessage.error('解封用户失败')
@@ -197,6 +231,25 @@ onMounted(() => {
           </div>
         </div>
       </template>
+      
+      <!-- 排序控制 -->
+      <div class="sort-control">
+        <span>排序方式：</span>
+        <el-select v-model="sortParams.sortField" placeholder="排序字段" @change="getUserList">
+          <el-option
+            v-for="item in sortFieldOptions"
+            :key="item.value"
+            :label="item.label"
+            :value="item.value"
+          />
+        </el-select>
+        <el-button @click="toggleSortOrder" class="sort-button">
+          <el-icon>
+            <component :is="sortParams.sortOrder === 'desc' ? 'Sort' : 'Sort'" />
+          </el-icon>
+          {{ sortParams.sortOrder === 'desc' ? '降序' : '升序' }}
+        </el-button>
+      </div>
       
       <div v-loading="loading">
         <el-table
@@ -274,6 +327,19 @@ onMounted(() => {
             </template>
           </el-table-column>
         </el-table>
+        
+        <!-- 分页组件 -->
+        <div class="pagination-wrapper">
+          <el-pagination
+            v-model:current-page="pagination.pageNum"
+            v-model:page-size="pagination.pageSize"
+            :page-sizes="[10, 20, 50, 100]"
+            layout="total, sizes, prev, pager, next, jumper"
+            :total="pagination.total"
+            @size-change="handleSizeChange"
+            @current-change="handleCurrentChange"
+          />
+        </div>
       </div>
     </el-card>
     
@@ -331,5 +397,31 @@ onMounted(() => {
 
 .search-box .el-input {
   margin-right: 10px;
+}
+
+.sort-control {
+  display: flex;
+  align-items: center;
+  margin-bottom: 15px;
+}
+
+.sort-control span {
+  margin-right: 10px;
+}
+
+.sort-control .el-select {
+  width: 150px;
+  margin-right: 10px;
+}
+
+.sort-button {
+  display: flex;
+  align-items: center;
+}
+
+.pagination-wrapper {
+  margin-top: 20px;
+  display: flex;
+  justify-content: center;
 }
 </style> 

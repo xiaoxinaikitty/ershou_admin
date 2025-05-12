@@ -171,6 +171,8 @@ export function getUserList(params?: {
   isLocked?: boolean
   pageNum?: number
   pageSize?: number
+  sortField?: string
+  sortOrder?: string
 }) {
   return request({
     url: '/admin/user/list',

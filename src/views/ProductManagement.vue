@@ -2,6 +2,7 @@
 import { ref, onMounted, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import * as productApi from '@/api/product'
+import ImageUrlUtil from '@/utils/imageUrlUtil'  // 导入图片URL处理工具
 
 // 商品列表数据接口
 interface ProductItem {
@@ -128,9 +129,11 @@ const getProductList = async () => {
     
     const res = await productApi.getProductList(params)
     if (res.code === 0) {
+      // 处理商品列表数据，包括处理图片URL
       productList.value = res.data.list.map(item => ({
         ...item,
-        status: item.status || 1 // 确保状态字段有默认值
+        status: item.status || 1, // 确保状态字段有默认值
+        mainImageUrl: ImageUrlUtil.processImageUrl(item.mainImageUrl) // 处理图片URL
       }))
       pagination.total = res.data.total
       pagination.pages = res.data.pages

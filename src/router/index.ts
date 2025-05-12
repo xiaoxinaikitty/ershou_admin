@@ -170,6 +170,17 @@ const router = createRouter({
         requiresAuth: true,
         requiresAdmin: true
       }
+    },
+    // 数据分析相关路由
+    {
+      path: '/data-analysis',
+      name: 'dataAnalysis',
+      component: () => import('@/views/DataAnalysis.vue'),
+      meta: {
+        title: '数据分析',
+        requiresAuth: true,
+        requiresAdmin: true
+      }
     }
   ]
 })
