@@ -10,6 +10,10 @@ const echartsError = ref(false)
 
 // 数据加载状态
 const loading = ref(true)
+// 网络错误状态
+const networkError = ref(false)
+// 错误消息
+const errorMessage = ref('')
 // 数据摘要
 const dataSummary = ref<any>(null)
 // 图表DOM引用
@@ -39,6 +43,101 @@ const loadEcharts = async () => {
   try {
     const echartsModule = await import('echarts')
     echarts.value = echartsModule
+    
+    // 注册内置主题，避免使用可能带有外部图片URL的自定义主题
+    echarts.value.registerTheme('custom', {
+      color: ['#5470c6', '#91cc75', '#fac858', '#ee6666', '#73c0de', '#3ba272', '#fc8452', '#9a60b4', '#ea7ccc'],
+      backgroundColor: 'rgba(0, 0, 0, 0)',
+      textStyle: {},
+      title: {
+        textStyle: {
+          color: '#464646'
+        },
+        subtextStyle: {
+          color: '#6E7079'
+        }
+      },
+      line: {
+        itemStyle: {
+          borderWidth: 1
+        },
+        lineStyle: {
+          width: 2
+        },
+        symbolSize: 4,
+        symbol: 'emptyCircle',
+        smooth: false
+      },
+      radar: {
+        itemStyle: {
+          borderWidth: 1
+        },
+        lineStyle: {
+          width: 2
+        },
+        symbolSize: 4,
+        symbol: 'emptyCircle',
+        smooth: false
+      },
+      bar: {
+        itemStyle: {
+          barBorderWidth: 0,
+          barBorderColor: '#ccc'
+        }
+      },
+      pie: {
+        itemStyle: {
+          borderWidth: 0,
+          borderColor: '#ccc'
+        }
+      },
+      scatter: {
+        itemStyle: {
+          borderWidth: 0,
+          borderColor: '#ccc'
+        }
+      },
+      boxplot: {
+        itemStyle: {
+          borderWidth: 0,
+          borderColor: '#ccc'
+        }
+      },
+      parallel: {
+        itemStyle: {
+          borderWidth: 0,
+          borderColor: '#ccc'
+        }
+      },
+      sankey: {
+        itemStyle: {
+          borderWidth: 0,
+          borderColor: '#ccc'
+        }
+      },
+      funnel: {
+        itemStyle: {
+          borderWidth: 0,
+          borderColor: '#ccc'
+        }
+      },
+      gauge: {
+        itemStyle: {
+          borderWidth: 0,
+          borderColor: '#ccc'
+        }
+      },
+      candlestick: {
+        itemStyle: {
+          color: '#eb5454',
+          color0: '#47b262',
+          borderColor: '#eb5454',
+          borderColor0: '#47b262',
+          borderWidth: 1
+        }
+      }
+    })
+    
     return true
   } catch (error) {
     console.error('Failed to load echarts:', error)
@@ -57,27 +156,41 @@ const dateRange = ref<[Date, Date]>([
 // 加载数据摘要
 const loadDataSummary = async () => {
   try {
+    console.log('开始加载数据摘要')
     const res = await dataAnalysisApi.getDataSummary()
-    if (res.code === 0) {
+    // 统一处理成功响应，兼容code=0或code=200两种格式
+    if ((res.code === 0 || res.code === 200) && res.data) {
       dataSummary.value = res.data
+      console.log('数据摘要加载成功:', res.data)
     } else {
+      console.error('获取数据摘要失败:', res.message)
       ElMessage.error(res.message || '获取数据摘要失败')
     }
   } catch (error) {
+    console.error('获取数据摘要异常:', error)
     ElMessage.error('获取数据摘要失败')
   }
 }
 
 // 加载商品分类统计
 const loadCategoryAnalysis = async () => {
-  if (!echarts.value) return
+  if (!echarts.value) {
+    console.warn('加载商品分类统计失败: echarts未初始化')
+    return
+  }
   
   try {
+    console.log('开始加载商品分类统计')
     const res = await dataAnalysisApi.getProductCategoryAnalysis()
-    if (res.code === 0 && res.data.length > 0) {
+    // 统一处理成功响应，兼容code=0或code=200两种格式
+    if ((res.code === 0 || res.code === 200) && res.data && res.data.length > 0) {
+      console.log('商品分类统计加载成功:', res.data)
       initCategoryChart(res.data)
+    } else {
+      console.warn('商品分类统计数据为空或返回错误:', res)
     }
   } catch (error) {
+    console.error('获取商品分类统计异常:', error)
     ElMessage.error('获取商品分类统计失败')
   }
 }
@@ -86,7 +199,8 @@ const loadCategoryAnalysis = async () => {
 const initCategoryChart = (data: any[]) => {
   if (!categoryChartRef.value || !echarts.value) return
   
-  charts.categoryChart = echarts.value.init(categoryChartRef.value)
+  // 使用自定义主题初始化图表，避免使用可能导致外部依赖的默认主题
+  charts.categoryChart = echarts.value.init(categoryChartRef.value, 'custom')
   
   const option = {
     title: {
@@ -111,12 +225,21 @@ const initCategoryChart = (data: any[]) => {
           name: item.categoryName,
           value: item.count
         })),
+        itemStyle: {
+          borderRadius: 5,
+          borderColor: '#fff',
+          borderWidth: 2
+        },
         emphasis: {
           itemStyle: {
             shadowBlur: 10,
             shadowOffsetX: 0,
             shadowColor: 'rgba(0, 0, 0, 0.5)'
           }
+        },
+        label: {
+          formatter: '{b}: {c} ({d}%)',
+          fontSize: 14
         }
       }
     ]
@@ -127,14 +250,22 @@ const initCategoryChart = (data: any[]) => {
 
 // 加载商品价格区间统计
 const loadPriceRangeAnalysis = async () => {
-  if (!echarts.value) return
+  if (!echarts.value) {
+    console.warn('加载商品价格区间统计失败: echarts未初始化')
+    return
+  }
   
   try {
+    console.log('开始加载商品价格区间统计')
     const res = await dataAnalysisApi.getProductPriceRangeAnalysis()
-    if (res.code === 0 && res.data.length > 0) {
+    if ((res.code === 0 || res.code === 200) && res.data && res.data.length > 0) {
+      console.log('商品价格区间统计加载成功:', res.data)
       initPriceRangeChart(res.data)
+    } else {
+      console.warn('商品价格区间统计数据为空或返回错误:', res)
     }
   } catch (error) {
+    console.error('获取商品价格区间统计异常:', error)
     ElMessage.error('获取商品价格区间统计失败')
   }
 }
@@ -143,7 +274,7 @@ const loadPriceRangeAnalysis = async () => {
 const initPriceRangeChart = (data: any[]) => {
   if (!priceRangeChartRef.value || !echarts.value) return
   
-  charts.priceRangeChart = echarts.value.init(priceRangeChartRef.value)
+  charts.priceRangeChart = echarts.value.init(priceRangeChartRef.value, 'custom')
   
   const option = {
     title: {
@@ -171,7 +302,14 @@ const initPriceRangeChart = (data: any[]) => {
       {
         name: '商品数量',
         type: 'bar',
-        data: data.map(item => item.count)
+        data: data.map(item => item.count),
+        itemStyle: {
+          color: new echarts.value.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: '#83bff6' },
+            { offset: 0.5, color: '#188df0' },
+            { offset: 1, color: '#188df0' }
+          ])
+        }
       }
     ]
   }
@@ -181,14 +319,22 @@ const initPriceRangeChart = (data: any[]) => {
 
 // 加载商品状态统计
 const loadProductStatusAnalysis = async () => {
-  if (!echarts.value) return
+  if (!echarts.value) {
+    console.warn('加载商品状态统计失败: echarts未初始化')
+    return
+  }
   
   try {
+    console.log('开始加载商品状态统计')
     const res = await dataAnalysisApi.getProductStatusAnalysis()
-    if (res.code === 0 && res.data.length > 0) {
+    if ((res.code === 0 || res.code === 200) && res.data && res.data.length > 0) {
+      console.log('商品状态统计加载成功:', res.data)
       initProductStatusChart(res.data)
+    } else {
+      console.warn('商品状态统计数据为空或返回错误:', res)
     }
   } catch (error) {
+    console.error('获取商品状态统计异常:', error)
     ElMessage.error('获取商品状态统计失败')
   }
 }
@@ -197,7 +343,7 @@ const loadProductStatusAnalysis = async () => {
 const initProductStatusChart = (data: any[]) => {
   if (!productStatusChartRef.value || !echarts.value) return
   
-  charts.productStatusChart = echarts.value.init(productStatusChartRef.value)
+  charts.productStatusChart = echarts.value.init(productStatusChartRef.value, 'custom')
   
   const option = {
     title: {
@@ -222,12 +368,21 @@ const initProductStatusChart = (data: any[]) => {
           name: item.statusDesc,
           value: item.count
         })),
+        itemStyle: {
+          borderRadius: 5,
+          borderColor: '#fff',
+          borderWidth: 2
+        },
         emphasis: {
           itemStyle: {
             shadowBlur: 10,
             shadowOffsetX: 0,
             shadowColor: 'rgba(0, 0, 0, 0.5)'
           }
+        },
+        label: {
+          formatter: '{b}: {c} ({d}%)',
+          fontSize: 14
         }
       }
     ]
@@ -238,14 +393,22 @@ const initProductStatusChart = (data: any[]) => {
 
 // 加载订单状态统计
 const loadOrderStatusAnalysis = async () => {
-  if (!echarts.value) return
+  if (!echarts.value) {
+    console.warn('加载订单状态统计失败: echarts未初始化')
+    return
+  }
   
   try {
+    console.log('开始加载订单状态统计')
     const res = await dataAnalysisApi.getOrderStatusAnalysis()
-    if (res.code === 0 && res.data.length > 0) {
+    if ((res.code === 0 || res.code === 200) && res.data && res.data.length > 0) {
+      console.log('订单状态统计加载成功:', res.data)
       initOrderStatusChart(res.data)
+    } else {
+      console.warn('订单状态统计数据为空或返回错误:', res)
     }
   } catch (error) {
+    console.error('获取订单状态统计异常:', error)
     ElMessage.error('获取订单状态统计失败')
   }
 }
@@ -254,7 +417,7 @@ const loadOrderStatusAnalysis = async () => {
 const initOrderStatusChart = (data: any[]) => {
   if (!orderStatusChartRef.value || !echarts.value) return
   
-  charts.orderStatusChart = echarts.value.init(orderStatusChartRef.value)
+  charts.orderStatusChart = echarts.value.init(orderStatusChartRef.value, 'custom')
   
   const option = {
     title: {
@@ -279,12 +442,21 @@ const initOrderStatusChart = (data: any[]) => {
           name: item.statusDesc,
           value: item.count
         })),
+        itemStyle: {
+          borderRadius: 5,
+          borderColor: '#fff',
+          borderWidth: 2
+        },
         emphasis: {
           itemStyle: {
             shadowBlur: 10,
             shadowOffsetX: 0,
             shadowColor: 'rgba(0, 0, 0, 0.5)'
           }
+        },
+        label: {
+          formatter: '{b}: {c} ({d}%)',
+          fontSize: 14
         }
       }
     ]
@@ -295,35 +467,52 @@ const initOrderStatusChart = (data: any[]) => {
 
 // 加载各种趋势数据
 const loadTrendData = async () => {
-  if (!echarts.value) return
+  if (!echarts.value) {
+    console.warn('加载趋势数据失败: echarts未初始化')
+    return
+  }
   
   try {
+    console.log('开始加载趋势数据')
     const days = Math.ceil((dateRange.value[1].getTime() - dateRange.value[0].getTime()) / (24 * 60 * 60 * 1000))
     
     // 加载商品发布趋势
     const productTrendRes = await dataAnalysisApi.getProductTrend(days)
-    if (productTrendRes.code === 0) {
+    if ((productTrendRes.code === 0 || productTrendRes.code === 200) && productTrendRes.data) {
+      console.log('商品发布趋势加载成功:', productTrendRes.data)
       initProductTrendChart(productTrendRes.data)
+    } else {
+      console.warn('商品发布趋势数据为空或返回错误:', productTrendRes)
     }
     
     // 加载用户注册趋势
     const registerTrendRes = await dataAnalysisApi.getUserRegisterTrend(days)
-    if (registerTrendRes.code === 0) {
+    if ((registerTrendRes.code === 0 || registerTrendRes.code === 200) && registerTrendRes.data) {
+      console.log('用户注册趋势加载成功:', registerTrendRes.data)
       initRegisterTrendChart(registerTrendRes.data)
+    } else {
+      console.warn('用户注册趋势数据为空或返回错误:', registerTrendRes)
     }
     
     // 加载订单趋势
     const orderTrendRes = await dataAnalysisApi.getOrderTrend(days)
-    if (orderTrendRes.code === 0) {
+    if ((orderTrendRes.code === 0 || orderTrendRes.code === 200) && orderTrendRes.data) {
+      console.log('订单趋势加载成功:', orderTrendRes.data)
       initOrderTrendChart(orderTrendRes.data)
+    } else {
+      console.warn('订单趋势数据为空或返回错误:', orderTrendRes)
     }
     
     // 加载订单金额趋势
     const orderAmountTrendRes = await dataAnalysisApi.getOrderAmountTrend(days)
-    if (orderAmountTrendRes.code === 0) {
+    if ((orderAmountTrendRes.code === 0 || orderAmountTrendRes.code === 200) && orderAmountTrendRes.data) {
+      console.log('订单金额趋势加载成功:', orderAmountTrendRes.data)
       initOrderAmountTrendChart(orderAmountTrendRes.data)
+    } else {
+      console.warn('订单金额趋势数据为空或返回错误:', orderAmountTrendRes)
     }
   } catch (error) {
+    console.error('获取趋势数据异常:', error)
     ElMessage.error('获取趋势数据失败')
   }
 }
@@ -332,7 +521,7 @@ const loadTrendData = async () => {
 const initProductTrendChart = (data: any[]) => {
   if (!productTrendChartRef.value || !echarts.value) return
   
-  charts.productTrendChart = echarts.value.init(productTrendChartRef.value)
+  charts.productTrendChart = echarts.value.init(productTrendChartRef.value, 'custom')
   
   const option = {
     title: {
@@ -357,11 +546,27 @@ const initProductTrendChart = (data: any[]) => {
         name: '商品数量',
         type: 'line',
         data: data.map(item => item.count),
+        smooth: true,
+        lineStyle: {
+          width: 3,
+          color: new echarts.value.graphic.LinearGradient(0, 0, 1, 0, [
+            {offset: 0, color: '#1890ff'},
+            {offset: 1, color: '#39c8c8'}
+          ])
+        },
+        areaStyle: {
+          opacity: 0.3,
+          color: new echarts.value.graphic.LinearGradient(0, 0, 0, 1, [
+            {offset: 0, color: '#1890ff'},
+            {offset: 1, color: 'rgba(0, 156, 217, 0.1)'}
+          ])
+        },
         markPoint: {
           data: [
             { type: 'max', name: '最大值' },
             { type: 'min', name: '最小值' }
-          ]
+          ],
+          symbol: 'circle'
         }
       }
     ]
@@ -374,7 +579,7 @@ const initProductTrendChart = (data: any[]) => {
 const initRegisterTrendChart = (data: any[]) => {
   if (!registerTrendChartRef.value || !echarts.value) return
   
-  charts.registerTrendChart = echarts.value.init(registerTrendChartRef.value)
+  charts.registerTrendChart = echarts.value.init(registerTrendChartRef.value, 'custom')
   
   const option = {
     title: {
@@ -399,11 +604,27 @@ const initRegisterTrendChart = (data: any[]) => {
         name: '注册人数',
         type: 'line',
         data: data.map(item => item.count),
+        smooth: true,
+        lineStyle: {
+          width: 3,
+          color: new echarts.value.graphic.LinearGradient(0, 0, 1, 0, [
+            {offset: 0, color: '#ff7f50'},
+            {offset: 1, color: '#ff4500'}
+          ])
+        },
+        areaStyle: {
+          opacity: 0.3,
+          color: new echarts.value.graphic.LinearGradient(0, 0, 0, 1, [
+            {offset: 0, color: '#ff7f50'},
+            {offset: 1, color: 'rgba(255, 69, 0, 0.1)'}
+          ])
+        },
         markPoint: {
           data: [
             { type: 'max', name: '最大值' },
             { type: 'min', name: '最小值' }
-          ]
+          ],
+          symbol: 'circle'
         }
       }
     ]
@@ -416,7 +637,7 @@ const initRegisterTrendChart = (data: any[]) => {
 const initOrderTrendChart = (data: any[]) => {
   if (!orderTrendChartRef.value || !echarts.value) return
   
-  charts.orderTrendChart = echarts.value.init(orderTrendChartRef.value)
+  charts.orderTrendChart = echarts.value.init(orderTrendChartRef.value, 'custom')
   
   const option = {
     title: {
@@ -441,11 +662,27 @@ const initOrderTrendChart = (data: any[]) => {
         name: '订单数量',
         type: 'line',
         data: data.map(item => item.count),
+        smooth: true,
+        lineStyle: {
+          width: 3,
+          color: new echarts.value.graphic.LinearGradient(0, 0, 1, 0, [
+            {offset: 0, color: '#7B68EE'},
+            {offset: 1, color: '#9932CC'}
+          ])
+        },
+        areaStyle: {
+          opacity: 0.3,
+          color: new echarts.value.graphic.LinearGradient(0, 0, 0, 1, [
+            {offset: 0, color: '#7B68EE'},
+            {offset: 1, color: 'rgba(153, 50, 204, 0.1)'}
+          ])
+        },
         markPoint: {
           data: [
             { type: 'max', name: '最大值' },
             { type: 'min', name: '最小值' }
-          ]
+          ],
+          symbol: 'circle'
         }
       }
     ]
@@ -458,7 +695,7 @@ const initOrderTrendChart = (data: any[]) => {
 const initOrderAmountTrendChart = (data: any[]) => {
   if (!orderAmountTrendChartRef.value || !echarts.value) return
   
-  charts.orderAmountTrendChart = echarts.value.init(orderAmountTrendChartRef.value)
+  charts.orderAmountTrendChart = echarts.value.init(orderAmountTrendChartRef.value, 'custom')
   
   const option = {
     title: {
@@ -492,7 +729,14 @@ const initOrderAmountTrendChart = (data: any[]) => {
         data: data.map(item => ({
           value: item.amount,
           count: item.count
-        }))
+        })),
+        itemStyle: {
+          color: new echarts.value.graphic.LinearGradient(0, 0, 0, 1, [
+            { offset: 0, color: '#91cc75' },
+            { offset: 0.5, color: '#5c9d49' },
+            { offset: 1, color: '#5c9d49' }
+          ])
+        }
       }
     ]
   }
@@ -509,21 +753,35 @@ const handleDateRangeChange = () => {
 // 加载所有数据
 const loadAllData = async () => {
   loading.value = true
+  networkError.value = false
+  errorMessage.value = ''
+  
   try {
+    console.log('开始加载所有数据')
     // 先尝试加载echarts
     const echartsLoaded = await loadEcharts()
     if (!echartsLoaded) {
+      console.error('echarts加载失败')
       loading.value = false
       return
     }
     
-    await loadDataSummary()
-    await loadCategoryAnalysis()
-    await loadPriceRangeAnalysis()
-    await loadProductStatusAnalysis()
-    await loadOrderStatusAnalysis()
-    await loadTrendData()
-  } catch (error) {
+    // 并行加载所有数据，提高加载速度
+    const promises = [
+      loadDataSummary(),
+      loadCategoryAnalysis(),
+      loadPriceRangeAnalysis(),
+      loadProductStatusAnalysis(),
+      loadOrderStatusAnalysis(),
+      loadTrendData()
+    ]
+    
+    await Promise.allSettled(promises)
+    console.log('所有数据加载完成')
+  } catch (error: any) {
+    console.error('加载数据失败:', error)
+    networkError.value = true
+    errorMessage.value = error.message || '加载数据失败，请检查网络连接'
     ElMessage.error('加载数据失败')
   } finally {
     loading.value = false
@@ -567,6 +825,29 @@ onUnmounted(() => {
       :closable="false"
       style="margin-bottom: 20px;"
     />
+    
+    <!-- 网络错误提示 -->
+    <el-alert
+      v-if="networkError"
+      title="网络连接错误"
+      type="error"
+      :description="errorMessage || '无法连接到服务器，请检查网络设置或联系管理员'"
+      show-icon
+      :closable="false"
+      style="margin-bottom: 20px;"
+    >
+      <template #default>
+        <div>
+          <p>可能的原因:</p>
+          <ul>
+            <li>后端服务器未启动或不可访问</li>
+            <li>API路径配置错误</li>
+            <li>网络连接问题</li>
+          </ul>
+          <el-button type="primary" size="small" @click="loadAllData">重试</el-button>
+        </div>
+      </template>
+    </el-alert>
     
     <!-- 数据摘要卡片 -->
     <el-card v-if="dataSummary" class="summary-card">

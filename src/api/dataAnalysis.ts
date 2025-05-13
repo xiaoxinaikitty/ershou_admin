@@ -6,7 +6,7 @@ import request from '@/utils/request'
  */
 export function getDataSummary() {
   return request({
-    url: 'data/analysis/summary',
+    url: '/data/analysis/summary',
     method: 'get'
   })
 }
@@ -17,7 +17,7 @@ export function getDataSummary() {
  */
 export function getProductCategoryAnalysis() {
   return request({
-    url: 'data/analysis/product/category',
+    url: '/data/analysis/product/category',
     method: 'get'
   })
 }
@@ -28,7 +28,7 @@ export function getProductCategoryAnalysis() {
  */
 export function getProductPriceRangeAnalysis() {
   return request({
-    url: 'data/analysis/product/price/range',
+    url: '/data/analysis/product/price/range',
     method: 'get'
   })
 }
@@ -39,7 +39,7 @@ export function getProductPriceRangeAnalysis() {
  */
 export function getProductConditionAnalysis() {
   return request({
-    url: 'data/analysis/product/condition',
+    url: '/data/analysis/product/condition',
     method: 'get'
   })
 }
@@ -50,7 +50,7 @@ export function getProductConditionAnalysis() {
  */
 export function getProductStatusAnalysis() {
   return request({
-    url: 'data/analysis/product/status',
+    url: '/data/analysis/product/status',
     method: 'get'
   })
 }
@@ -62,7 +62,7 @@ export function getProductStatusAnalysis() {
  */
 export function getProductTrend(days = 30) {
   return request({
-    url: 'data/analysis/product/trend',
+    url: '/data/analysis/product/trend',
     method: 'get',
     params: { days }
   })
@@ -75,7 +75,7 @@ export function getProductTrend(days = 30) {
  */
 export function getUserRegisterTrend(days = 30) {
   return request({
-    url: 'data/analysis/user/register/trend',
+    url: '/data/analysis/user/register/trend',
     method: 'get',
     params: { days }
   })
@@ -88,7 +88,7 @@ export function getUserRegisterTrend(days = 30) {
  */
 export function getOrderTrend(days = 30) {
   return request({
-    url: 'data/analysis/order/trend',
+    url: '/data/analysis/order/trend',
     method: 'get',
     params: { days }
   })
@@ -101,7 +101,7 @@ export function getOrderTrend(days = 30) {
  */
 export function getOrderAmountTrend(days = 30) {
   return request({
-    url: 'data/analysis/order/amount/trend',
+    url: '/data/analysis/order/amount/trend',
     method: 'get',
     params: { days }
   })
@@ -113,7 +113,7 @@ export function getOrderAmountTrend(days = 30) {
  */
 export function getOrderStatusAnalysis() {
   return request({
-    url: 'data/analysis/order/status',
+    url: '/data/analysis/order/status',
     method: 'get'
   })
 }
@@ -125,7 +125,7 @@ export function getOrderStatusAnalysis() {
  */
 export function getUserActiveAnalysis(days = 30) {
   return request({
-    url: 'data/analysis/user/active',
+    url: '/data/analysis/user/active',
     method: 'get',
     params: { days }
   })
@@ -138,7 +138,7 @@ export function getUserActiveAnalysis(days = 30) {
  */
 export function getHotProducts(limit = 10) {
   return request({
-    url: 'data/analysis/product/hot',
+    url: '/data/analysis/product/hot',
     method: 'get',
     params: { limit }
   })
@@ -152,7 +152,7 @@ export function getHotProducts(limit = 10) {
  */
 export function getCustomAnalysis(startDate: string, endDate: string) {
   return request({
-    url: 'data/analysis/custom',
+    url: '/data/analysis/custom',
     method: 'get',
     params: { startDate, endDate }
   })
