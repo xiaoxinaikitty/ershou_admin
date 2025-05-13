@@ -4,7 +4,7 @@
  */
 export default class ImageUrlUtil {
   // 当前服务器的baseUrl，与vite.config.ts中的proxy target保持一致
-  static readonly currentBaseUrl = 'http://192.168.200.30:8080';
+  static readonly currentBaseUrl = 'http://192.168.0.104:8080';
 
   /**
    * 处理图片URL
