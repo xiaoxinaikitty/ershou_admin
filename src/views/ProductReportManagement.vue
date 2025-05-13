@@ -20,11 +20,21 @@ const reportStatus = {
   1: '已处理'
 }
 
+// 商品状态映射
+const productStatus = {
+  0: '已下架',
+  1: '正常',
+  2: '已售出'
+}
+
 // 举报状态标签类型
 const reportStatusTagType = {
   0: 'warning',
   1: 'success'
 }
+
+// 本地记录已下架的商品ID
+const offshelfProductIds = ref<number[]>([])
 
 // 被举报商品接口
 interface ReportedProduct {
@@ -33,6 +43,7 @@ interface ReportedProduct {
   reportType: number
   reportTypeDesc: string
   createdTime: string
+  status: number // 添加商品状态字段
 }
 
 // 举报详情接口
@@ -96,6 +107,11 @@ const fetchReportedProducts = async () => {
   } finally {
     loading.value = false
   }
+}
+
+// 检查商品是否已被下架（本地记录）
+const isProductOffshelf = (productId: number): boolean => {
+  return offshelfProductIds.value.includes(productId)
 }
 
 // 查看商品详情
@@ -173,7 +189,14 @@ const handleOffShelf = async (productId: number) => {
     const res = await productApi.offShelfProduct(productId)
     if (res.code === 0) {
       ElMessage.success('商品下架成功')
-      fetchReportedProducts() // 刷新列表
+      
+      // 将商品ID添加到本地下架记录中
+      if (!offshelfProductIds.value.includes(productId)) {
+        offshelfProductIds.value.push(productId)
+      }
+      
+      // 刷新列表
+      fetchReportedProducts()
     } else {
       ElMessage.error(res.message || '商品下架失败')
     }
@@ -251,7 +274,22 @@ onMounted(() => {
         <el-table-column fixed="right" label="操作" width="200">
           <template #default="{ row }">
             <el-button size="small" @click="handleViewProduct(row.productId)">查看商品</el-button>
-            <el-button size="small" type="danger" @click="handleOffShelf(row.productId)">下架</el-button>
+            <el-button
+              v-if="!isProductOffshelf(row.productId)"
+              size="small"
+              type="danger"
+              @click="handleOffShelf(row.productId)"
+            >
+              下架
+            </el-button>
+            <el-button
+              v-else
+              size="small"
+              type="info"
+              disabled
+            >
+              已下架
+            </el-button>
           </template>
         </el-table-column>
       </el-table>
