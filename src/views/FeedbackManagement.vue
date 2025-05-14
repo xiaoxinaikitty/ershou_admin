@@ -43,7 +43,7 @@
         stripe
         border
         style="width: 100%"
-        :default-sort="{ prop: 'feedbackId', order: 'ascending' }"
+        :default-sort="{ prop: 'createdTime', order: 'descending' }"
       >
         <el-table-column prop="feedbackId" label="ID" width="80" sortable />
         <el-table-column prop="username" label="用户名" width="120" />
@@ -52,6 +52,28 @@
             <el-link type="primary" @click="openDetailDialog(scope.row.feedbackId)">
               {{ scope.row.feedbackTitle }}
             </el-link>
+          </template>
+        </el-table-column>
+        <el-table-column label="反馈图片" width="120">
+          <template #default="scope">
+            <div v-if="scope.row.images">
+              <el-image
+                :src="scope.row.images.split(',')[0]"
+                fit="cover"
+                style="width: 60px; height: 60px; border-radius: 4px"
+                :preview-src-list="scope.row.images.split(',')"
+              >
+                <template #error>
+                  <div class="image-error">
+                    <el-icon><Picture /></el-icon>
+                  </div>
+                </template>
+              </el-image>
+              <span v-if="scope.row.images.split(',').length > 1" class="image-count">
+                +{{ scope.row.images.split(',').length - 1 }}
+              </span>
+            </div>
+            <span v-else>无</span>
           </template>
         </el-table-column>
         <el-table-column prop="feedbackTypeDesc" label="反馈类型" width="120" />
@@ -69,7 +91,7 @@
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="createdTime" label="提交时间" width="180" />
+        <el-table-column prop="createdTime" label="提交时间" width="180" sortable="custom" />
         <el-table-column label="操作" width="280" fixed="right">
           <template #default="scope">
             <div class="operation-buttons">
@@ -232,7 +254,7 @@
 <script setup lang="ts">
 import { ref, reactive, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { ArrowDown, View, ChatLineRound, Star } from '@element-plus/icons-vue'
+import { ArrowDown, View, ChatLineRound, Star, Picture } from '@element-plus/icons-vue'
 import * as feedbackApi from '@/api/feedback'
 import type { FormInstance, FormRules } from 'element-plus'
 
@@ -319,7 +341,9 @@ const getFeedbackList = async () => {
     const params = {
       ...searchParams,
       pageNum: pagination.pageNum,
-      pageSize: pagination.pageSize
+      pageSize: pagination.pageSize,
+      orderBy: 'createdTime',
+      orderDirection: 'desc'
     }
     
     const res = await feedbackApi.getFeedbackList(params)
@@ -619,5 +643,23 @@ onMounted(() => {
 
 :deep(.el-table--border .el-table__cell) {
   padding: 8px;
+}
+
+.image-error {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 60px;
+  height: 60px;
+  background-color: #f5f7fa;
+  border-radius: 4px;
+  color: #909399;
+}
+
+.image-count {
+  display: inline-block;
+  margin-left: 4px;
+  font-size: 12px;
+  color: #909399;
 }
 </style> 

@@ -70,6 +70,18 @@ export function getOrderList(params?: {
   status?: number
   pageNum?: number
   pageSize?: number
+  orderNo?: string
+  startDate?: string
+  endDate?: string
+  sortField?: string
+  sortOrder?: string
+  // 添加一些常见的排序参数名称，兼容不同后端API实现
+  sort?: string
+  order?: string
+  orderBy?: string
+  orderDir?: string
+  sortBy?: string
+  sortDirection?: string
 }) {
   return request({
     url: '/order/list',
@@ -130,6 +142,14 @@ export function shipOrder(orderId: number, shipData: {
 export function getOrderCount() {
   return request({
     url: '/order/count',
+    method: 'get'
+  })
+}
+
+// 获取产品详情
+export function getProductDetail(productId: number) {
+  return request({
+    url: `/product/detail/${productId}`,
     method: 'get'
   })
 } 

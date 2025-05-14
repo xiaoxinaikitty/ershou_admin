@@ -95,7 +95,9 @@ const searchForm = reactive({
   status: '',
   orderNo: '',
   startDate: '',
-  endDate: ''
+  endDate: '',
+  sortField: 'createdTime', // 默认排序字段
+  sortOrder: 'desc' // 默认排序顺序
 })
 
 // 重置搜索表单
@@ -114,17 +116,97 @@ const fetchOrderList = async () => {
     // 构建请求参数
     const params: any = {
       pageNum: currentPage.value,
-      pageSize: pageSize.value
+      pageSize: pageSize.value,
+      // 添加多种排序参数格式，增加与后端兼容性
+      sortField: searchForm.sortField,
+      sortOrder: searchForm.sortOrder,
+      // 常见后端API排序参数名称
+      sort: searchForm.sortField,
+      order: searchForm.sortOrder,
+      orderBy: searchForm.sortField,
+      orderDir: searchForm.sortOrder,
+      sortBy: searchForm.sortField,
+      sortDirection: searchForm.sortOrder
     }
 
     if (searchForm.status !== '') {
       params.status = Number(searchForm.status)
     }
 
+    if (searchForm.orderNo) {
+      params.orderNo = searchForm.orderNo
+    }
+
+    if (searchForm.startDate) {
+      params.startDate = formatDate(searchForm.startDate)
+    }
+
+    if (searchForm.endDate) {
+      params.endDate = formatDate(searchForm.endDate)
+    }
+
+    console.log('获取订单列表请求参数:', params)
     const res = await orderApi.getOrderList(params)
-    if (res.code === 0) {
-      orderList.value = res.data
+    
+    if (res.code === 0 && res.data) {
+      console.log('获取到的订单数据:', res.data)
+      
+      // 处理每个订单，确保商品名称正确显示
+      const orders = res.data
+      const ordersWithProductInfo = []
+      
+      for (const order of orders) {
+        // 检查是否有商品名称
+        if (!order.productTitle || order.productTitle.trim() === '') {
+          console.log(`订单 ${order.orderId} 的商品名称为空，尝试获取商品信息`)
+          
+          try {
+            // 方法1: 尝试获取订单详情，因为订单详情中可能包含商品标题
+            const detailRes = await orderApi.getOrderDetail(order.orderId)
+            if (detailRes.code === 0 && detailRes.data && detailRes.data.productTitle) {
+              order.productTitle = detailRes.data.productTitle
+              console.log(`通过订单详情获取到商品名称: ${order.productTitle}`)
+            } else {
+              // 方法2: 如果订单详情没有，尝试通过商品ID直接获取商品详情
+              console.log(`订单详情中无商品名称，尝试通过商品ID获取商品详情: ${order.productId}`)
+              
+              try {
+                const productRes = await orderApi.getProductDetail(order.productId)
+                if (productRes.code === 0 && productRes.data && productRes.data.title) {
+                  order.productTitle = productRes.data.title
+                  console.log(`通过商品详情获取到商品名称: ${order.productTitle}`)
+                } else {
+                  // 如果商品详情也没获取到，使用商品ID作为标识
+                  order.productTitle = `商品ID: ${order.productId}`
+                  console.log(`未能获取到商品名称，使用商品ID: ${order.productId}`)
+                }
+              } catch (productError) {
+                console.error(`获取商品 ${order.productId} 的详情失败:`, productError)
+                order.productTitle = `商品ID: ${order.productId}`
+              }
+            }
+          } catch (error) {
+            console.error(`获取订单 ${order.orderId} 的详情失败:`, error)
+            order.productTitle = `商品ID: ${order.productId}`
+          }
+        }
+        
+        ordersWithProductInfo.push(order)
+      }
+      
+      // 确保在前端进行排序，按照创建时间降序排列
+      ordersWithProductInfo.sort((a, b) => {
+        // 创建日期比较
+        const dateA = parseDateTime(a.createdTime)
+        const dateB = parseDateTime(b.createdTime)
+        return dateB.getTime() - dateA.getTime() // 降序排列
+      })
+      
+      console.log('前端排序后的订单数据:', ordersWithProductInfo)
+      orderList.value = ordersWithProductInfo
       totalOrders.value = res.total || res.data.length
+      
+      console.log('处理后的订单数据:', orderList.value)
     } else {
       ElMessage.error(res.message || '获取订单列表失败')
     }
@@ -134,6 +216,49 @@ const fetchOrderList = async () => {
   } finally {
     loading.value = false
   }
+}
+
+// 解析日期字符串，支持多种格式
+const parseDateTime = (dateStr: string): Date => {
+  if (!dateStr) return new Date(0)
+  
+  try {
+    // 尝试直接解析标准格式
+    const parsedDate = new Date(dateStr)
+    if (!isNaN(parsedDate.getTime())) {
+      return parsedDate
+    }
+    
+    // 尝试解析常见格式: "yyyy-MM-dd HH:mm:ss"
+    const pattern = /(\d{4})-(\d{1,2})-(\d{1,2})(?:\s+(\d{1,2}):(\d{1,2})(?::(\d{1,2}))?)?/
+    const match = dateStr.match(pattern)
+    
+    if (match) {
+      const year = parseInt(match[1])
+      const month = parseInt(match[2]) - 1 // 月份从0开始
+      const day = parseInt(match[3])
+      const hour = match[4] ? parseInt(match[4]) : 0
+      const minute = match[5] ? parseInt(match[5]) : 0
+      const second = match[6] ? parseInt(match[6]) : 0
+      
+      return new Date(year, month, day, hour, minute, second)
+    }
+    
+    console.warn(`无法解析日期格式: ${dateStr}，使用当前时间`)
+    return new Date() // 默认返回当前时间
+  } catch (error) {
+    console.error(`日期解析出错: ${error}，日期字符串: ${dateStr}`)
+    return new Date() // 出错时返回当前时间
+  }
+}
+
+// 格式化日期为 yyyy-MM-dd 格式
+const formatDate = (date: Date): string => {
+  if (!date) return ''
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 // 处理页码变化
@@ -156,9 +281,24 @@ const currentOrder = ref<Order | null>(null)
 // 查看订单详情
 const handleViewDetail = async (row: Order) => {
   try {
+    console.log('获取订单详情，订单ID:', row.orderId)
     const res = await orderApi.getOrderDetail(row.orderId)
+    
     if (res.code === 0) {
-      currentOrder.value = res.data
+      console.log('获取到的订单详情数据:', res.data)
+      
+      // 确保订单详情中包含商品名称
+      const orderDetail = {
+        ...res.data,
+      }
+      
+      // 处理商品标题：优先使用详情接口返回的标题，如果为空则使用列表中的标题
+      if (!orderDetail.productTitle || orderDetail.productTitle.trim() === '') {
+        console.log('订单详情中商品标题为空，使用列表中的商品标题')
+        orderDetail.productTitle = row.productTitle || `商品ID: ${row.productId}`
+      }
+      
+      currentOrder.value = orderDetail
       dialogVisible.value = true
     } else {
       ElMessage.error(res.message || '获取订单详情失败')
@@ -329,6 +469,22 @@ const getOrderRole = (order: Order) => {
 onMounted(() => {
   fetchOrderList()
 })
+
+// 表格排序事件处理函数
+const handleSortChange = (sort: any) => {
+  if (sort.prop) {
+    // 用户选择了排序字段
+    searchForm.sortField = sort.prop
+    searchForm.sortOrder = sort.order === 'ascending' ? 'asc' : 'desc'
+  } else {
+    // 用户取消排序，恢复默认排序
+    searchForm.sortField = 'createdTime'
+    searchForm.sortOrder = 'desc'
+  }
+  
+  console.log(`排序已更新: ${searchForm.sortField} ${searchForm.sortOrder}`)
+  fetchOrderList() // 重新加载数据
+}
 </script>
 
 <template>
@@ -366,9 +522,27 @@ onMounted(() => {
     </el-card>
 
     <el-card class="table-card">
-      <el-table :data="orderList" stripe border v-loading="loading">
+      <el-table 
+        :data="orderList" 
+        stripe 
+        border 
+        v-loading="loading"
+        :default-sort="{ prop: 'createdTime', order: 'descending' }"
+        @sort-change="handleSortChange">
         <el-table-column prop="orderNo" label="订单编号" min-width="170" show-overflow-tooltip></el-table-column>
-        <el-table-column prop="productTitle" label="商品名称" min-width="120" show-overflow-tooltip></el-table-column>
+        <el-table-column prop="productTitle" label="商品名称" min-width="120" show-overflow-tooltip>
+          <template #default="{ row }">
+            <el-tooltip :content="row.productTitle || `商品ID: ${row.productId}`" placement="top">
+              <div class="product-title">
+                <span v-if="row.productTitle">{{ row.productTitle }}</span>
+                <span v-else class="no-title">
+                  <el-icon><el-icon-warning /></el-icon>
+                  商品ID: {{ row.productId }}
+                </span>
+              </div>
+            </el-tooltip>
+          </template>
+        </el-table-column>
         <el-table-column prop="paymentAmount" label="支付金额" width="120">
           <template #default="{ row }">
             <span class="price">{{ formatPrice(row.paymentAmount) }}</span>
@@ -401,7 +575,13 @@ onMounted(() => {
             </el-tag>
           </template>
         </el-table-column>
-        <el-table-column prop="createdTime" label="创建时间" width="160"></el-table-column>
+        <el-table-column 
+          prop="createdTime" 
+          label="创建时间" 
+          width="160"
+          sortable="custom"
+          :sort-orders="['descending', 'ascending', null]">
+        </el-table-column>
         <el-table-column fixed="right" label="操作" width="200">
           <template #default="{ row }">
             <el-button size="small" @click="handleViewDetail(row)">详情</el-button>
@@ -622,5 +802,22 @@ onMounted(() => {
 
 .delivery-info {
   margin-top: 20px;
+}
+
+.product-title {
+  display: flex;
+  align-items: center;
+}
+
+.no-title {
+  display: flex;
+  align-items: center;
+  color: #909399;
+  font-size: 12px;
+}
+
+.no-title .el-icon {
+  margin-right: 4px;
+  color: #E6A23C;
 }
 </style> 
